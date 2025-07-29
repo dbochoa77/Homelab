@@ -1,17 +1,8 @@
+{ config, lib, outputs, pkgs, ... }: 
+
 {
-  config,
-  lib,
-  outputs,
-  pkgs,
-  ...
-}: {
- 
-  #  home.stateVersion = "24.05";
-  #  home.username = "dbochoa77";
-  #  home.homeDirectory = "/home/dbochoa77";
+   nixpkgs = {
 
-
-    nixpkgs = {
     # Overlays
     overlays = [
     outputs.overlays.additions

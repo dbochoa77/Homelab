@@ -2,7 +2,6 @@
     imports = [
     ./alias.nix
     ./fastfetch.nix
-    ./bash_profile.nix
     ];
 
 

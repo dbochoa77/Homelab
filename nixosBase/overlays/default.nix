@@ -7,13 +7,14 @@
   # https://nixos.wiki/wiki/Overlays
   modifications = final: prev:
     {
-      # example = prev.example.overrideAttrs (oldAttrs: rec {
-      # ...
-      # });
+      # Patch vagrant to ignore broken symlink check
+      vagrant = prev.vagrant.overrideAttrs (old: {
+      dontFixup = true;
+      });
     };
 
   stable-packages = final: _prev: {
-    stable = import inputs.nixpkgs-stable {
+    pkgsStable = import inputs.nixpkgs-stable {
       system = final.system;
       config.allowUnfree = true;
     };

@@ -1,14 +1,15 @@
 #!/bin/bash
+set -e 
 
-ping -c 4 google.com & 
+rm /home/dbochoa77/nixosServer/hosts/nixosServer/hardware-configuration.nix
 
-git clone https://github.com/dbochoa77/nixosServer
-wait
+cp /etc/nixos/hardware-configuration.nix /home/dbochoa77/nixosServer/hosts/nixosServer/hardware-configuration.nix
 
-cp /etc/nixos/hardware-configuration.nix ~/nixosServer/hosts/
+cd nixosServer && 
 
-rm -f /home/dbochoa77/nixosServer/hosts/hardware-configuration.nix
-wait
-
-sudo nixos-rebuild switch --flake ~/nixosServer#nixosServer
-home-manager switch --flake ~/nixosServer#nixosServer
+nix-shell -p git --run "
+sudo nixos-rebuild switch --flake .#nixosServer
+home-manager switch --flake .#nixosServer
+"
+# Add script to source files
+source .bashrc

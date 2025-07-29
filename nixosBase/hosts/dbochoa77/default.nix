@@ -6,19 +6,17 @@
 	./users 
 	inputs.home-manager.nixosModules.home-manager
   ];
+
   home-manager = { 
     useUserPackages = true;
     extraSpecialArgs = {inherit inputs outputs; };
   };
 
-  nixpkgs = {
- 
+  nixpkgs = { 
     overlays = [
-
       outputs.overlays.additions
       outputs.overlays.modifications
       outputs.overlays.stable-packages
-
     ];
 
   # Allows Closed Sourced packages

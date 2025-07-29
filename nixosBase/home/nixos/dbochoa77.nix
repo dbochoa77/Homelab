@@ -1,4 +1,6 @@
-{ config, ... }: { 
+{ config, ... }: 
+
+{ 
   imports = [ 
     ../dbochoa77
     ../features/cli

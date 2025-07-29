@@ -8,9 +8,6 @@
 
   home.packages = import ../../pkgs/userPackages { inherit pkgs; };
 
-  home.file = {
-  };
-
   home.sessionVariables = {
     EDITOR = "nvim";
   };

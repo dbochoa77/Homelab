@@ -1,9 +1,10 @@
-{pkgs, ...}: {
-    imports = [
-    ./alias.nix
-    ./fastfetch.nix
-    ];
+{pkgs, ... }: 
 
+{
+    imports = [
+    ./alias/default.nix
+    ./fastfetch/default.nix
+    ];
 
   programs.eza = {
     enable = true;
@@ -13,8 +14,6 @@
   };
 
   programs.bat = {enable = true;};
-
-
 
   home.packages = with pkgs; [
     coreutils 

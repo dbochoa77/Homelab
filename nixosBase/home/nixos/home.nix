@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 {
-  home.username = lib.mkDefault "dbochoa77";
+  home.username = lib.mkDefault "admin";
   home.homeDirectory = lib.mkDefault "/home/${config.home.username}";
 
   home.stateVersion = "24.05";

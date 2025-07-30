@@ -1,9 +1,9 @@
 { config, pkgs, ... }:
 
 {
-  users.users.dbochoa77 = {
+  users.users.admin = {
     isNormalUser = true;
-    description = "dbochoa77";
+    description = "admin";
     extraGroups = [ "media" "networkmanager" "wheel" "docker" ];
   };
 }

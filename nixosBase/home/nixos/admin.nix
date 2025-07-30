@@ -2,7 +2,7 @@
 
 { 
   imports = [ 
-    ../dbochoa77
+    ../admin
     ../features/cli
     ./home.nix
     ./dotfiles

@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}:
+{ config, lib, ... }:
 
 {
   programs.bash = {
@@ -43,7 +39,7 @@
       gs = "git status";
  
       # Nix Config Rebuild
-      rebuild = "nix flake update && sudo nixos-rebuild switch --flake .#nixos && home-manager switch --flake .#nixos"; 
+      rebuild = "nix flake update && sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos && home-manager switch --flake ~/Homelab/nixosBase#nixos"; 
 
       # Neovim (root)
       v = "sudo -E nvim";

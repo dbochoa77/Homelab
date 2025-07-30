@@ -1,4 +1,16 @@
 Services
 -Tailscale VPN 
--Textbooks services
 -JackSparrow
+-NextCloud
+-Pfsense
+
+[WAN/Modem]
+     |
+ [pfSense (GTK)]
+     |---LAN---> [Switch/Panel] ---> Other devices
+                          |
+                     Proxmox/NixOS/Gentoo host
+                        |---- NextCloud (VM)
+                        |---- JackSparrow stack (VM/Container)
+                        |---- Tailscale (VM or inside pfSense)
+

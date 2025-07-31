@@ -1,5 +1,12 @@
 { pkgs }: with pkgs; [
     gcc
+    nodejs
+    curl
+    wget
+    unzip
+    gnutar
+    gzip
+    cacert
     gnumake
     git 
     python3

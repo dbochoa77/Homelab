@@ -20,6 +20,12 @@
                 mountpoint = "/boot";
               };
             };
+            swap = { 
+              size = "2G";
+              content = {
+                type = "swap";
+              };
+            };
             root = {
               size = "100%";
               content = {

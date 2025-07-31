@@ -30,6 +30,7 @@ inputs = {
   outputs = { 
 	self, 
         #agenix,
+	disko,
 	dwmDotfiles,
 	nvimDotfiles,
 	home-manager,
@@ -54,7 +55,8 @@ inputs = {
         nixos = nixpkgs.lib.nixosSystem {
 	  specialArgs = {inherit inputs outputs;};
 	  modules = [./hosts/nixos/default.nix
-		     ./hosts/nixos/hardware-configuration.nix
+	    #./hosts/nixos/hardware-configuration.nix
+		     inputs.disko.nixosModules.disko
 	  ];
 	};
       };

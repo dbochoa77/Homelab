@@ -2,34 +2,36 @@
   description = "Configuration for Nixos Server";
 
 inputs = {
+    # Manages Dotfiles
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Unstable Nixos 
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    # Stable Nixos
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-24.05";
 
+    # Declarative Partions
     disko = {
       url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    #agenix.url = "github:ryantm/agenix";
+    # Encryption for Secrets
+    agenix.url = "github:ryantm/agenix";
     
+    # My Nvim Configuration
     nvimDotfiles = {
     url = "git+https://github.com/dbochoa77/nvim.git";
     flake = false;
     };
-  
-    dwmDotfiles = { 
-    url = "git+https://github.com/dbochoa77/dwmRepo.git";
-    flake = false;
-    };
-  };
-
-  outputs = { 
+ 
+    outputs = { 
 	self, 
-        #agenix,
+        agenix,
 	disko,
 	dwmDotfiles,
 	nvimDotfiles,
@@ -58,14 +60,13 @@ inputs = {
 	  hostname = "nixos";
 	  };
 
-	  modules = [./hosts/nixos/default.nix
-	    #./hosts/nixos/hardware-configuration.nix
-		     inputs.disko.nixosModules.disko
+	  modules = [
+	    ./hosts/nixos/default.nix
+      	    inputs.disko.nixosModules.disko
+	    agenix.nixosModules.default
 	  ];
 	};
       };
-      #agenix.nixosModules.default
-      #./hosts/nixos/configuration.nix was removed, working on fixing podman
 
       homeConfigurations = { 
         "nixos" = home-manager.lib.homeManagerConfiguration {

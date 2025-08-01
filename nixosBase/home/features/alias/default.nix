@@ -36,10 +36,8 @@
       gs = "git status";
  
       # Nix Config Rebuild
-      rebuild = "nix flake update 
-      && 
-      sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos 
-      && 
+      rebuild = "nix flake update && \ 
+      sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos && \
       home-manager switch --flake ~/Homelab/nixosBase#nixos"; 
 
 

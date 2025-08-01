@@ -28,24 +28,12 @@ inputs = {
     url = "git+https://github.com/dbochoa77/nvim.git";
     flake = false;
     };
+  };
  
-    outputs = { 
-	self, 
-        agenix,
-	disko,
-	dwmDotfiles,
-	nvimDotfiles,
-	home-manager,
-	nixpkgs,
-	...
-    } @ inputs: let
+    outputs = { self, agenix, disko, nvimDotfiles, home-manager, nixpkgs, ...} @ inputs: let
       inherit (self) outputs;
-      systems = [
-        "x86_64-linux"
-	"aarch64-linux"
-      ];
+      systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;  
-
     in {
     overlays = import ./overlays {inherit inputs;};
 
@@ -69,8 +57,7 @@ inputs = {
 	  pkgs = nixpkgs.legacyPackages."x86_64-linux";
 	  extraSpecialArgs = {inherit inputs outputs;};
 	  modules = [./home/nixos/admin.nix];
-	};
+        };
       };
     };
-  };
 }

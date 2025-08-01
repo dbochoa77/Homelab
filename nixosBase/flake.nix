@@ -22,6 +22,10 @@ inputs = {
 
     # Encryption for Secrets
     agenix.url = "github:ryantm/agenix";
+    secrets = { 
+      url = "path:./secrets"
+      flake = false;
+    };
     
     # My Nvim Configuration
     nvimDotfiles = {

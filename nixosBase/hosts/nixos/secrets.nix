@@ -1,9 +1,11 @@
-{ 
+{ config, inputs, ... }:
+
+{
   age = {
     secrets = {
       secret1 = {
-         file = ~/Homelab/nixosBase/secrets/secret1.age;
+         file = "${inputs.secrets}/secret1.age";
         };
       };
     };
-  }
+}

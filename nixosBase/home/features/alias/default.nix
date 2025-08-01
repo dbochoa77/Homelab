@@ -24,6 +24,8 @@
       ls = "eza -a --icons --git";
       la = "exa -la --icons --git";
       lt = "eza -T --git-ignore --icons";
+      cat= "bat --style=plain,numbers --paging=never";
+      uglycat = "bat -p --style=plain --paging=never --decorations=never";
 
       # Directory Movement
       mkdir = "mkdir -p";
@@ -39,7 +41,7 @@
       gs = "git status";
  
       # Nix Config Rebuild
-      rebuild = "nix flake update && sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos && home-manager switch --flake ~/Homelab/nixosBase#nixos"; 
+      rebuild = "nix flake update && sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos && home-manager switch --flake ~/Homelab/nixosBase#nixos && source ~/.bashrc"; 
 
       # Neovim (root)
       v = "sudo -E nvim";

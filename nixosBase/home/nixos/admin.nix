@@ -3,9 +3,9 @@
 { 
   imports = [ 
     ../admin
-    ../features/cli
+    ../features
     ./home.nix
-    ./dotfiles
+    ./dotfiles/nvim 
   ]; 
 
   features = {

@@ -47,10 +47,6 @@ inputs = {
       forAllSystems = nixpkgs.lib.genAttrs systems;  
 
     in {
-    #packages =
-    #  forAllSystems (system: import ./pkgs { pkgs = nixpkgs.legacyPackages.${system}; }
-    #);
-
     overlays = import ./overlays {inherit inputs;};
 
     nixosConfigurations = {
@@ -76,4 +72,5 @@ inputs = {
 	};
       };
     };
-} 
+  };
+}

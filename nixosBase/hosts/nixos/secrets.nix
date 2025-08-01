@@ -2,7 +2,7 @@
   age = {
     secrets = {
       secret1 = {
-         file = ../../secrets/secret1.age;
+         file = ~/Homelab/nixosBase/secrets/secret1.age;
         };
       };
     };

@@ -1,5 +1,5 @@
-{ config, pkgs, ... }:
+{ config, pkgs, hostname, ... }:
 
 {
-    networking.hostName = "nixos";
+    networking.hostName = hostname;
 }

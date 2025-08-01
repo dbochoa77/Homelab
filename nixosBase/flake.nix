@@ -51,6 +51,11 @@ inputs = {
 
     overlays = import ./overlays {inherit inputs;};
 
+    specialArgs = {
+       user = "admin";
+       hostname = "nixos";
+      };
+
     nixosConfigurations = {
         nixos = nixpkgs.lib.nixosSystem {
 	  specialArgs = {inherit inputs outputs;};

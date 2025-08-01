@@ -175,8 +175,21 @@
         "home-manager": "home-manager_2",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-stable": "nixpkgs-stable",
-        "nvimDotfiles": "nvimDotfiles"
+        "nvimDotfiles": "nvimDotfiles",
+        "secrets": "secrets"
       }
+    },
+    "secrets": {
+      "flake": false,
+      "locked": {
+        "path": "./secrets",
+        "type": "path"
+      },
+      "original": {
+        "path": "./secrets",
+        "type": "path"
+      },
+      "parent": []
     },
     "systems": {
       "locked": {

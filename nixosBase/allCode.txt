@@ -91,9 +91,12 @@
 ‚îÇ¬†¬†     ‚îÇ¬†¬† ‚îî‚îÄ‚îÄ default.nix
 ‚îÇ¬†¬†     ‚îî‚îÄ‚îÄ utilities
 ‚îÇ¬†¬†         ‚îî‚îÄ‚îÄ default.nix
-‚îî‚îÄ‚îÄ printAll.sh
+‚îú‚îÄ‚îÄ printAll.sh
+‚îî‚îÄ‚îÄ secrets
+    ‚îú‚îÄ‚îÄ secret1.age
+    ‚îî‚îÄ‚îÄ secrets.nix
 
-43 directories, 50 files
+44 directories, 52 files
 
 ===== FILE CONTENTS =====
 
@@ -123,6 +126,22 @@
   };
 }
 
+
+===== ./secrets/secrets.nix =====
+let 
+    nixos = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAx+jc82f2W7Sebla9PN/LYvXumikklbGptt48es+A5";
+in {
+    "secret1.age".publicKeys = [nixos];
+}
+
+===== ./secrets/.nvimlog =====
+
+===== ./secrets/secret1.age =====
+age-encryption.org/v1
+-> ssh-ed25519 YbXx7g IFhetG5cmNAXy3/Y6whd49BXnyErxN00wAv8wMoDyUw
+znvZer27M6TiSmgXGdu3pHv7DwjCgncbBAKpfOas/EY
+--- dTeWNdyIrpuUrDFiG0BWsDijn7rMx0xyZesTjVPVKH0
+ùeÕ`zı∞ØÁr`·√‚¶g#GÚıñª±*ÿÇ Á◊+˝≤fŒ∑ª›K”i´T¢IT≠X,
 
 ===== ./home/nixos/dotfiles/nvim/default.nix =====
 { inputs, ... }:
@@ -316,7 +335,7 @@ in {
   age = {
     secrets = {
       secret1 = {
-         file = "${inputs.secrets}/secret1.age";
+         file = ../../../secrets/secret1.age;
         };
       };
     };
@@ -1056,7 +1075,7 @@ inputs = {
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Encryption for Secrets
+    #Encryption for Secrets
     agenix.url = "github:ryantm/agenix";
     secrets = { 
       url = "path:./secrets";
@@ -1126,6 +1145,7 @@ inputs = {
   brightnessctl
   htop
   rtkit
+  tmux
   timeshift
   udisks
 ]

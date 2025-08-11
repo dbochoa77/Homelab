@@ -10,10 +10,10 @@
 *.swp
 
 # Ignore custom/private modules
-hosts/**/private.nix
-home/**/private.nix
+#hosts/**/private.nix
+#home/**/private.nix
 
 # Ignore secrets if you ever generate any
-secrets/
-*.key
-*.pem
+#secrets/
+#*.key
+#*.pem

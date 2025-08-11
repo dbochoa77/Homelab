@@ -3,7 +3,6 @@
 {
  imports = [
    ./hardware-configuration.nix
-   ./secrets.nix
    ./services
    ../admin
    ../admin/extraServices

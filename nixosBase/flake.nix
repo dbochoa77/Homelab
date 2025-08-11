@@ -21,11 +21,11 @@ inputs = {
     };
 
     #Encryption for Secrets
-    agenix.url = "github:ryantm/agenix";
-    secrets = { 
-      url = "path:./secrets";
-      flake = false;
-    };
+    #agenix.url = "github:ryantm/agenix";
+    #secrets = { 
+    #  url = "path:./secrets";
+    #  flake = false;
+    #};
     
     # My Nvim Configuration
     nvimDotfiles = {
@@ -34,7 +34,7 @@ inputs = {
     };
   };
  
-    outputs = { self, agenix, disko, nvimDotfiles, home-manager, nixpkgs, ...} @ inputs: let
+    outputs = { self, disko, nvimDotfiles, home-manager, nixpkgs, ...} @ inputs: let
       inherit (self) outputs;
       systems = [ "x86_64-linux" "aarch64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;  
@@ -51,7 +51,6 @@ inputs = {
 	  modules = [
 	    ./hosts/nixos/default.nix
       	    inputs.disko.nixosModules.disko
-	    agenix.nixosModules.default
 	  ];
 	};
       };

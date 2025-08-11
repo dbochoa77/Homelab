@@ -17,7 +17,7 @@
 
       # File Listing
       ls = "eza -a --icons --git";
-      la = "exa -la --icons --git";
+      la = "eza -la --icons --git";
       lt = "eza -T --git-ignore --icons";
       cat = "bat --style=plain,numbers --paging=never";
       uglycat = "bat -p --style=plain --paging=never --decorations=never";

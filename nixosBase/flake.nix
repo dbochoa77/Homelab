@@ -20,6 +20,8 @@ inputs = {
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    #colmena.url = "github.zhaofengli/colmena";
+
     #Encryption for Secrets
     #agenix.url = "github:ryantm/agenix";
     #secrets = { 
@@ -62,5 +64,15 @@ inputs = {
 	  modules = [./home/nixos/admin.nix];
         };
       };
-    };
+
+    #colmena = { 
+    #	meta = {
+    #	  nixpkgs = import nixpkgs {
+    #	    system = "x86_64-linux";
+    #	};
+    #  specialArgs = {inherit inputs ouputs;};
+    #	  };
+    #   };
+      };
+  };
 }

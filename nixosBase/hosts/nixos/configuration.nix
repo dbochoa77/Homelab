@@ -3,7 +3,6 @@
 {
   imports =
     [
-      ./hardware-configuration.nix
       ./services/default.nix
       ./disko-config.nix
     ];

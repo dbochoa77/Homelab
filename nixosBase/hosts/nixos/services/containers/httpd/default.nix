@@ -9,10 +9,10 @@
       };
     bindMounts = {
         "/root/data" = {
-          hostPath = "/home/nixos/data/";
+          hostPath = "/home/admin/data";
           isReadOnly = false;
-        }"
-      }
+        };
+      };
     };
   };
 }

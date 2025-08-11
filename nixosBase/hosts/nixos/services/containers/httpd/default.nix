@@ -7,6 +7,12 @@
       enable = true;
       adminAddr = "foo@example.org";
       };
+    bindMounts = {
+        "/root/data" = {
+          hostPath = "/home/nixos/data/";
+          isReadOnly = false;
+        }"
+      }
     };
   };
 }

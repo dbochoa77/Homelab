@@ -1,5 +1,5 @@
 let 
-    user = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFzAm3vpF6DkqwfvQIL5wPzjXbLBVijuPwT1HXZeOIIx";
+    user = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMAx+jc82f2W7Sebla9PN/LYvXumikklbGptt48es+A5";
 in {
-    "secret1.age".publicKeys = [user];
+    "secret1.age".publicKeys = [ user ];
 }

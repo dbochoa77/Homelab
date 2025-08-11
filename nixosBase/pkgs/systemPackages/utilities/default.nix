@@ -15,6 +15,7 @@
   brightnessctl
   htop
   rtkit
+  tmux
   timeshift
   udisks
 ]

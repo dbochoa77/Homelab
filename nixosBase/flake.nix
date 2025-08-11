@@ -20,7 +20,7 @@ inputs = {
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    Encryption for Secrets
+    #Encryption for Secrets
     agenix.url = "github:ryantm/agenix";
     secrets = { 
       url = "path:./secrets";

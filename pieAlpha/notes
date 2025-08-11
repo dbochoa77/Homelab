@@ -1,3 +1,5 @@
 Services: Pie Alpha 
 - Pihole
 - Wireguard
+
+Notes create mkdir in home-manager for data for the containers

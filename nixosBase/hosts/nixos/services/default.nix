@@ -1,5 +1,6 @@
 {
   imports = [
+    ./autoUpgrade/default.nix
     ./boot/default.nix
     ./containers/default.nix
     ./flakes/default.nix
@@ -10,7 +11,6 @@
     ./ssh/default.nix
     ./stateVersion/default.nix
     ./timezone/default.nix
-    ./unfree/default.nix
     ./user/default.nix
   ];
 }

@@ -13,9 +13,5 @@
     X11UseLocalhost yes
   '';
 
-  services.openssh.settings.X11Forwarding = true;
-  
-  environment.systemPackages = with pkgs; [
-    xorg.xauth
-  ];
+  services.openssh.settings.X11Forwarding = true;  
 }

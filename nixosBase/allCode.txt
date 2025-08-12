@@ -24,11 +24,13 @@
 │   │   └── overlays
 │   │       └── default.nix
 │   └── nixos
-│       ├── admin.nix
-│       ├── dotfiles
-│       │   └── nvim
-│       │       └── default.nix
-│       └── home.nix
+│       ├── default.nix
+│       ├── features
+│       │   └── default.nix
+│       ├── home
+│       │   └── default.nix
+│       └── nvim
+│           └── default.nix
 ├── hosts
 │   ├── admin
 │   │   ├── default.nix
@@ -50,6 +52,7 @@
 │   │       └── default.nix
 │   └── nixos
 │       ├── configuration.nix
+│       ├── d
 │       ├── default.nix
 │       ├── disko-config.nix
 │       ├── hardware-configuration.nix
@@ -83,8 +86,6 @@
 │           │   └── default.nix
 │           ├── timezone
 │           │   └── default.nix
-│           ├── unfree
-│           │   └── default.nix
 │           └── user
 │               └── default.nix
 ├── overlays
@@ -111,7 +112,7 @@
 │           └── default.nix
 └── printAll.sh
 
-53 directories, 58 files
+53 directories, 59 files
 
 ===== FILE CONTENTS =====
 
@@ -142,7 +143,7 @@
 }
 
 
-===== ./home/nixos/dotfiles/nvim/default.nix =====
+===== ./home/nixos/nvim/default.nix =====
 { inputs, ... }:
 
 {
@@ -152,41 +153,46 @@ home.file.".config/nvim" = {
   };
 }
 
-===== ./home/nixos/admin.nix =====
-{ config, ... }: 
-
-{ 
-  imports = [ 
-    ../admin
-    ./home.nix
-    ./dotfiles/nvim 
-  ]; 
-
-  features = {
-    cli = {
-    fastfetch.enable = true;
-    };
-  };
-}
-
-
-===== ./home/nixos/home.nix =====
+===== ./home/nixos/home/default.nix =====
 { config, lib, pkgs, ... }:
 
 {
   home = {
     username = lib.mkDefault "admin";
-    homeDirectory = lib.mkDefault "/home/${config.home.username}";
+    homeDirectory = lib.mkDefault "/home/admin";
     stateVersion = "24.05";
    
-    packages = import ../../pkgs/userPackages { inherit pkgs; };
+    packages = pkgs.userPackages;
+      #import ../../pkgs/userPackages { inherit pkgs; };
     
     sessionVariables = {
       EDITOR = "nvim";
     };
   }; 
-   
-  programs.home-manager.enable = true;
+}
+
+===== ./home/nixos/default.nix =====
+{ config, ... }: 
+
+{ 
+  imports = [ 
+    ../admin
+    ./features/default.nix
+    ./home/default.nix
+    ./nvim/default.nix 
+  ]; 
+}
+
+
+===== ./home/nixos/features/default.nix =====
+{ config, ... }:
+
+{
+  features = {
+    cli = {
+    fastfetch.enable = true;
+    };
+  };
 }
 
 ===== ./home/admin/overlays/default.nix =====
@@ -243,9 +249,7 @@ home.file.".config/nvim" = {
 { config, lib, ... }:
 
 {
-
   programs.bat = {enable = true;};
-
 }
 
 ===== ./home/admin/features/eza/default.nix =====
@@ -350,13 +354,6 @@ in {
 
 }
 
-===== ./hosts/nixos/services/unfree/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  nixpkgs.config.allowUnfree = true;    
-}
-
 ===== ./hosts/nixos/services/flakes/default.nix =====
 { config, pkgs, ... }:
 
@@ -384,11 +381,7 @@ in {
     X11UseLocalhost yes
   '';
 
-  services.openssh.settings.X11Forwarding = true;
-  
-  environment.systemPackages = with pkgs; [
-    xorg.xauth
-  ];
+  services.openssh.settings.X11Forwarding = true;  
 }
 
 ===== ./hosts/nixos/services/keymaps/default.nix =====
@@ -500,6 +493,7 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
 ===== ./hosts/nixos/services/default.nix =====
 {
   imports = [
+    ./autoUpgrade/default.nix
     ./boot/default.nix
     ./containers/default.nix
     ./flakes/default.nix
@@ -510,7 +504,6 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
     ./ssh/default.nix
     ./stateVersion/default.nix
     ./timezone/default.nix
-    ./unfree/default.nix
     ./user/default.nix
   ];
 }
@@ -634,14 +627,13 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
    ../admin
    ./configuration.nix
    inputs.home-manager.nixosModules.home-manager
-   inputs.disko.nixosModules.disko
   ];
 
   home-manager = {
    useUserPackages = true;
    extraSpecialArgs = { inherit inputs outputs; };
    users.admin = 
-   import ../../home/nixos/admin.nix;  
+   import ../../home/nixos/default.nix;  
    }; 
 }
 
@@ -657,6 +649,8 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
 
   environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
 }
+
+===== ./hosts/nixos/d =====
 
 ===== ./hosts/admin/overlays/default.nix =====
 { config, pkgs, outputs, ... }:
@@ -1015,7 +1009,7 @@ echo "✅ All contents saved to $OUTPUT_FILE"
     "nixos" = home-manager.lib.homeManagerConfiguration {
 	pkgs = nixpkgs.legacyPackages."x86_64-linux";
 	extraSpecialArgs = {inherit inputs outputs;};
-	modules = [./home/nixos/admin.nix];
+	modules = [./home/nixos/default.nix];
       };
     };
   };
@@ -1025,7 +1019,9 @@ echo "✅ All contents saved to $OUTPUT_FILE"
 { pkgs }: with pkgs; [
     openssl
     nftables
+    xorg.xauth 
 ]
+
 
 ===== ./pkgs/systemPackages/utilities/default.nix =====
 { pkgs }: with pkgs; [

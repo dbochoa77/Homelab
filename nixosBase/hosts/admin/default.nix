@@ -6,5 +6,5 @@
     ./nix/default.nix
     ./overlays/default.nix
     ./unfree/default.nix
-  ]
+  ];
 }

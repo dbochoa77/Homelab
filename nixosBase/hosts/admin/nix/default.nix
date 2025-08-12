@@ -2,8 +2,8 @@
   imports = [
     ./generalCleanup/default.nix
     ./nixPath/default.nix
-    ./optimise/defult.nix
+    ./optimise/default.nix
     ./registry/default.nix
-    ./settings/defautl.nix
+    ./settings/default.nix
   ];
 }

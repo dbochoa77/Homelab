@@ -52,7 +52,7 @@
     "nixos" = home-manager.lib.homeManagerConfiguration {
 	pkgs = nixpkgs.legacyPackages."x86_64-linux";
 	extraSpecialArgs = {inherit inputs outputs;};
-	modules = [./home/nixos/admin.nix];
+	modules = [./home/nixos/default.nix];
       };
     };
   };

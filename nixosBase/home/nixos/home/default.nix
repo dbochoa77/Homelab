@@ -3,10 +3,11 @@
 {
   home = {
     username = lib.mkDefault "admin";
-    homeDirectory = lib.mkDefault "/home/${config.home.username}";
+    homeDirectory = lib.mkDefault "/home/admin";
     stateVersion = "24.05";
    
-    packages = import ../../pkgs/userPackages { inherit pkgs; };
+    packages = pkgs.userPackages;
+      #import ../../pkgs/userPackages { inherit pkgs; };
     
     sessionVariables = {
       EDITOR = "nvim";

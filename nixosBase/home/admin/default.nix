@@ -1,26 +1,9 @@
 { config, lib, outputs, pkgs, ... }: 
 
 {
-   nixpkgs = {
-
-    # Overlays
-    overlays = [
-      outputs.overlays.additions
-      outputs.overlays.modifications
-      outputs.overlays.stable-packages
-    ];
-
-    config = {
-      allowUnfree = true;
-      allowUnfreePredicate = _: true;
-    };
-  };
-
-  nix = {
-    package = lib.mkDefault pkgs.nix;
-    settings = {
-      experimental-features = ["nix-command" "flakes"];
-      warn-dirty = false;
-    };
-  };
+  import = [
+    ./config/default.nix
+    ./nix/default.ni.x
+    ./overlays/default.nix
+  ];
 }

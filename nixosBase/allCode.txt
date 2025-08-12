@@ -10,7 +10,11 @@
 │   ├── features
 │   │   ├── alias
 │   │   │   └── default.nix
+│   │   ├── bat
+│   │   │   └── default.nix
 │   │   ├── default.nix
+│   │   ├── eza
+│   │   │   └── default.nix
 │   │   └── fastfetch
 │   │       └── default.nix
 │   └── nixos
@@ -36,10 +40,7 @@
 │   │   │   │   └── default.nix
 │   │   │   └── settings
 │   │   │       └── default.nix
-│   │   ├── oldDefault
-│   │   ├── overlays
-│   │   │   └── default.nix
-│   │   └── unfree
+│   │   └── overlays
 │   │       └── default.nix
 │   └── nixos
 │       ├── configuration.nix
@@ -57,11 +58,7 @@
 │           │       └── default.nix
 │           ├── containers
 │           │   ├── default.nix
-│           │   ├── echo
-│           │   │   └── default.nix
-│           │   ├── httpd
-│           │   │   └── default.nix
-│           │   └── wireguard
+│           │   └── httpd
 │           │       └── default.nix
 │           ├── default.nix
 │           ├── flakes
@@ -108,7 +105,7 @@
 │           └── default.nix
 └── printAll.sh
 
-51 directories, 57 files
+50 directories, 55 files
 
 ===== FILE CONTENTS =====
 
@@ -194,18 +191,16 @@ home.file.".config/nvim" = {
 
     # Overlays
     overlays = [
-    outputs.overlays.additions
-    outputs.overlays.modifications
-    outputs.overlays.stable-packages
-
+      outputs.overlays.additions
+      outputs.overlays.modifications
+      outputs.overlays.stable-packages
     ];
 
     config = {
-    allowUnfree = true;
-
-    allowUnfreePredicate = _: true;
+      allowUnfree = true;
+      allowUnfreePredicate = _: true;
+    };
   };
-};
 
   nix = {
     package = lib.mkDefault pkgs.nix;
@@ -213,6 +208,27 @@ home.file.".config/nvim" = {
       experimental-features = ["nix-command" "flakes"];
       warn-dirty = false;
     };
+  };
+}
+
+===== ./home/features/bat/default.nix =====
+{ config, lib, ... }:
+
+{
+
+  programs.bat = {enable = true;};
+
+}
+
+===== ./home/features/eza/default.nix =====
+{ config, lib, ... }:
+
+{
+  programs.eza = {
+    enable = true;
+    enableFishIntegration = true;
+    enableBashIntegration = true;
+    extraOptions = ["-l" "--icons" "--git" "-a"];
   };
 }
 
@@ -300,28 +316,10 @@ in {
     imports = [
     ./alias/default.nix
     ./fastfetch/default.nix
+    ./bat/default.nix
+    ./eza/default.nix
     ];
 
-  programs.eza = {
-    enable = true;
-    enableFishIntegration = true;
-    enableBashIntegration = true;
-    extraOptions = ["-l" "--icons" "--git" "-a"];
-  };
-
-  programs.bat = {enable = true;};
-
-  home.packages = with pkgs; [
-    coreutils 
-    fd
-    htop
-    httpie
-    jq
-    procs
-    ripgrep
-    tldr
-    zip 
-  ];
 }
 
 ===== ./hosts/nixos/services/unfree/default.nix =====
@@ -489,13 +487,6 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
   ];
 }
 
-===== ./hosts/nixos/services/containers/wireguard/default.nix =====
-{ config, pkgs, ... }:
-
-{
-
-}
-
 ===== ./hosts/nixos/services/containers/httpd/default.nix =====
 {
   containers.httpd = { 
@@ -520,27 +511,9 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
      };
 }
 
-===== ./hosts/nixos/services/containers/echo/default.nix =====
-{lib, ...}: {
-  virtualisation.oci-containers.containers."echo-http-service" = {
-    image = "hashicorp/http-echo";
-    extraOptions = ["-text='Hello, World!'" "--network=web"];
-    ports = ["5678:5678"];
-  };
-
-  system.activationScripts.createPodmanNetworkWeb = lib.mkAfter ''
-    if ! /run/current-system/sw/bin/podman network exists web; then
-      /run/current-system/sw/bin/podman network create web
-    fi
-  '';
-}
-
-
 ===== ./hosts/nixos/services/containers/default.nix =====
 {
   imports = [
-    ./wireguard/default.nix
-    ./echo/default.nix
     ./httpd/default.nix
   ];
 }
@@ -644,13 +617,10 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
    ./hardware-configuration.nix
    ./services
    ../admin
-   ../admin/extraServices
    ./configuration.nix
    inputs.home-manager.nixosModules.home-manager
    inputs.disko.nixosModules.disko
   ];
-
-  extraServices.podman.enable = true;
 
   home-manager = {
    useUserPackages = true;
@@ -674,17 +644,8 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
   environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
 }
 
-===== ./hosts/admin/unfree/default.nix =====
-{ pkgs, config, ... }
-
-{
-  config = {
-    allowUnfree = true;
-  };
-}
-
 ===== ./hosts/admin/overlays/default.nix =====
-{ config, pkgs, ... }:
+{ config, pkgs, outputs, ... }:
 
 {
   nixpkgs = {
@@ -693,67 +654,11 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
       outputs.overlays.modifications
       outputs.overlays.stable-packages
     ];
-}
-
-===== ./hosts/admin/oldDefault =====
-{ lib, pkgs, inputs, outputs, ... }: 
-
-{
-  imports = [
-	./users 
-	inputs.home-manager.nixosModules.home-manager
-  ];
-
-  home-manager = { 
-    useUserPackages = true;
-    extraSpecialArgs = {inherit inputs outputs; };
-  };
-
-  nixpkgs = { 
-    overlays = [
-      outputs.overlays.additions
-      outputs.overlays.modifications
-      outputs.overlays.stable-packages
-    ];
-
-  # Allows Closed Sourced packages
-    config = {
-      allowUnfree = true;
-    };
-  };
-
-  # Experimental Features Nix-command and Flakes
-  nix = let 
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-  in { 
-    settings = {
-      experimental-features = ["nix-command" "flakes"];
-      trusted-users = [
-        "root"
-	"admin"
-      ];
-    };
-
-    # Automaticlly Cleans Nixos Generations 30d older
-    gc = {
-      automatic = true; 
-      options = "--delete-older-than 30d";
-    };
-  
-    optimise.automatic = true;
- 
-    registry = 
-      lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
-
-    nixPath = 
-	["/etc/nix/path"] 
-	++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs; 
   };
 }
-
 
 ===== ./hosts/admin/home-manager/default.nix =====
-{ config, pkgs, ... }: 
+{ config, pkgs, inputs, outputs, ... }: 
 
 {
   home-manager = {
@@ -763,7 +668,7 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
 }
 
 ===== ./hosts/admin/nix/settings/default.nix =====
-{ config, pkgs, ... }: 
+{ config, pkgs, lib, inputs, ... }: 
 
 {
 nix = let
@@ -780,26 +685,28 @@ nix = let
 }
 
 ===== ./hosts/admin/nix/registry/default.nix =====
-{ config, pkgs, ... }:
-
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs; {
-        registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
-    }
-}
-
-
-===== ./hosts/admin/nix/nixPath/default.nix =====
-{ config, pkgs, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
 nix = let
     flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        nixPath =
-        ["/etc/nix/path"]
-        ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
+        in {
+            registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
     };
+}
+
+
+===== ./hosts/admin/nix/nixPath/default.nix =====
+{ config, pkgs, lib, inputs, ... }:
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            nixPath =
+            ["/etc/nix/path"]
+            ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
+         };
 }
 
 ===== ./hosts/admin/nix/default.nix =====
@@ -807,14 +714,14 @@ nix = let
   imports = [
     ./generalCleanup/default.nix
     ./nixPath/default.nix
-    ./optimise/defult.nix
+    ./optimise/default.nix
     ./registry/default.nix
-    ./settings/defautl.nix
-  ]
+    ./settings/default.nix
+  ];
 }
 
 ===== ./hosts/admin/nix/optimise/default.nix =====
-{ config, pkgs, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
     nix = let
@@ -824,11 +731,11 @@ nix = let
                 automatic = true;
                 options = "--delete-older-than 30d";
             };
-        }
+        };
 }
 
 ===== ./hosts/admin/nix/generalCleanup/default.nix =====
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, lib, ... }:
 
 { 
     nix = let
@@ -849,7 +756,6 @@ nix = let
     ./home-manager/default.nix
     ./nix/default.nix
     ./overlays/default.nix
-    ./unfree/default.nix
   ];
 }
 

@@ -5,13 +5,10 @@
    ./hardware-configuration.nix
    ./services
    ../admin
-   ../admin/extraServices
    ./configuration.nix
    inputs.home-manager.nixosModules.home-manager
    inputs.disko.nixosModules.disko
   ];
-
-  extraServices.podman.enable = true;
 
   home-manager = {
    useUserPackages = true;

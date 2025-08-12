@@ -1,4 +1,4 @@
-{ config, pkgs, overlays, ... }:
+{ config, pkgs, outputs, ... }:
 
 {
   nixpkgs = {

@@ -37,10 +37,10 @@
  
       # Nix Config Rebuild
       rebuild = ''
-         cd ~/Homelab/nixosBase &&
+         cd ~/Homelab/pieDelta &&
          nix flake update &&
-         sudo nixos-rebuild switch --flake ~/Homelab/nixosBase#nixos &&
-         home-manager switch --flake ~/Homelab/nixosBase#nixos  
+         sudo nixos-rebuild switch --flake ~/Homelab/pieDelta#nixos &&
+         home-manager switch --flake ~/Homelab/pieDelta#nixos  
       '';
 
       # Neovim (root)

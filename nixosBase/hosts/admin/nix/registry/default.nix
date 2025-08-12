@@ -2,8 +2,9 @@
 
 {
 nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs; {
-        registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
     };
 }
 

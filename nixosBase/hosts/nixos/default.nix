@@ -14,7 +14,6 @@
    useUserPackages = true;
    extraSpecialArgs = { inherit inputs outputs; };
    users.admin = 
-   import ../../home/nixos/admin.nix; 
-  
+   import ../../home/nixos/admin.nix;  
    }; 
 }

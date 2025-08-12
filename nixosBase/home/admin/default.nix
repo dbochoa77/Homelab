@@ -1,9 +1,10 @@
-{ config, lib, outputs, pkgs, ... }: 
+{ config, lib, outputs, pkgs, ... }:
 
 {
-  import = [
+  imports = [
     ./config/default.nix
-    ./nix/default.ni.x
+    ./nix/default.nix
     ./overlays/default.nix
+    ./features/default.nix
   ];
 }

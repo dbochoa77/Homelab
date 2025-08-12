@@ -6,16 +6,22 @@
 ├── flake.nix
 ├── home
 │   ├── admin
-│   │   └── default.nix
-│   ├── features
-│   │   ├── alias
-│   │   │   └── default.nix
-│   │   ├── bat
+│   │   ├── config
 │   │   │   └── default.nix
 │   │   ├── default.nix
-│   │   ├── eza
+│   │   ├── features
+│   │   │   ├── alias
+│   │   │   │   └── default.nix
+│   │   │   ├── bat
+│   │   │   │   └── default.nix
+│   │   │   ├── default.nix
+│   │   │   ├── eza
+│   │   │   │   └── default.nix
+│   │   │   └── fastfetch
+│   │   │       └── default.nix
+│   │   ├── nix
 │   │   │   └── default.nix
-│   │   └── fastfetch
+│   │   └── overlays
 │   │       └── default.nix
 │   └── nixos
 │       ├── admin.nix
@@ -105,7 +111,7 @@
 │           └── default.nix
 └── printAll.sh
 
-50 directories, 55 files
+53 directories, 58 files
 
 ===== FILE CONTENTS =====
 
@@ -169,39 +175,50 @@ home.file.".config/nvim" = {
 { config, lib, pkgs, ... }:
 
 {
-  home.username = lib.mkDefault "admin";
-  home.homeDirectory = lib.mkDefault "/home/${config.home.username}";
-
-  home.stateVersion = "24.05";
-
-  home.packages = import ../../pkgs/userPackages { inherit pkgs; };
-
-  home.sessionVariables = {
-    EDITOR = "nvim";
-  };
-
+  home = {
+    username = lib.mkDefault "admin";
+    homeDirectory = lib.mkDefault "/home/${config.home.username}";
+    stateVersion = "24.05";
+   
+    packages = import ../../pkgs/userPackages { inherit pkgs; };
+    
+    sessionVariables = {
+      EDITOR = "nvim";
+    };
+  }; 
+   
   programs.home-manager.enable = true;
 }
 
-===== ./home/admin/default.nix =====
-{ config, lib, outputs, pkgs, ... }: 
+===== ./home/admin/overlays/default.nix =====
+{ config, outputs, ... }:
 
 {
-   nixpkgs = {
-
-    # Overlays
+  nixpkgs = {
     overlays = [
       outputs.overlays.additions
       outputs.overlays.modifications
       outputs.overlays.stable-packages
     ];
+  };
+}
 
+===== ./home/admin/config/default.nix =====
+{ config, ... }:
+
+{
+  nixpkgs = {
     config = {
       allowUnfree = true;
-      allowUnfreePredicate = _: true;
+      allowUnfreePredicate = true;
     };
   };
+}
 
+===== ./home/admin/nix/default.nix =====
+{ config, lib, pkgs, ... }:
+
+{
   nix = {
     package = lib.mkDefault pkgs.nix;
     settings = {
@@ -211,7 +228,19 @@ home.file.".config/nvim" = {
   };
 }
 
-===== ./home/features/bat/default.nix =====
+===== ./home/admin/default.nix =====
+{ config, lib, outputs, pkgs, ... }: 
+
+{
+  import = [
+    ./config/default.nix
+    ./nix/default.nix
+    ./overlays/default.nix
+    ./features/default.nix
+  ];
+}
+
+===== ./home/admin/features/bat/default.nix =====
 { config, lib, ... }:
 
 {
@@ -220,7 +249,7 @@ home.file.".config/nvim" = {
 
 }
 
-===== ./home/features/eza/default.nix =====
+===== ./home/admin/features/eza/default.nix =====
 { config, lib, ... }:
 
 {
@@ -232,7 +261,7 @@ home.file.".config/nvim" = {
   };
 }
 
-===== ./home/features/alias/default.nix =====
+===== ./home/admin/features/alias/default.nix =====
 { config, lib, ... }:
 
 {
@@ -294,7 +323,7 @@ home.file.".config/nvim" = {
 }
 
 
-===== ./home/features/fastfetch/default.nix =====
+===== ./home/admin/features/fastfetch/default.nix =====
 { config, lib, pkgs, ... }:
 
 with lib; let 
@@ -309,7 +338,7 @@ in {
 
 
 
-===== ./home/features/default.nix =====
+===== ./home/admin/features/default.nix =====
 {pkgs, ... }: 
 
 {
@@ -541,19 +570,6 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
-  #  fileSystems."/" =
-  #    { device = "/dev/disk/by-uuid/f2dc1a58-84af-4777-93d6-1f16ace67e2c";
-  #      fsType = "ext4";
-  #    };
-  #
-  #  fileSystems."/boot" =
-  #    { device = "/dev/disk/by-uuid/D244-BDA2";
-  #      fsType = "vfat";
-  #      options = [ "fmask=0077" "dmask=0077" ];
-  #    };
-  #
-  #swapDevices = [ ];
-
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
   # still possible to use this option, but it's recommended to use it in conjunction
@@ -626,8 +642,7 @@ networking.firewall.allowedTCPPorts = [ 80  22 ];
    useUserPackages = true;
    extraSpecialArgs = { inherit inputs outputs; };
    users.admin = 
-   import ../../home/nixos/admin.nix; 
-  
+   import ../../home/nixos/admin.nix;  
    }; 
 }
 
@@ -826,11 +841,11 @@ rm ~/nixos/bootstrap.sh
         ]
       },
       "locked": {
-        "lastModified": 1753140376,
-        "narHash": "sha256-7lrVrE0jSvZHrxEzvnfHFE/Wkk9DDqb+mYCodI5uuB8=",
+        "lastModified": 1754971456,
+        "narHash": "sha256-p04ZnIBGzerSyiY2dNGmookCldhldWAu03y0s3P8CB0=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "545aba02960caa78a31bd9a8709a0ad4b6320a5c",
+        "rev": "8246829f2e675a46919718f9a64b71afe3bfb22d",
         "type": "github"
       },
       "original": {
@@ -846,11 +861,11 @@ rm ~/nixos/bootstrap.sh
         ]
       },
       "locked": {
-        "lastModified": 1754950654,
-        "narHash": "sha256-30f9MF+zIKLodQRuSLyY4OSDZSOy5O+/FslgPt/prbc=",
+        "lastModified": 1754974548,
+        "narHash": "sha256-XMjUjKD/QRPcqUnmSDczSYdw46SilnG0+wkho654DFM=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "d19f3213e51469321835a9188adfa20391ff9371",
+        "rev": "27a26be51ff0162a8f67660239f9407dba68d7c5",
         "type": "github"
       },
       "original": {

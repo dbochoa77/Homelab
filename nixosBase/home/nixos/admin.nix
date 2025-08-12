@@ -2,7 +2,7 @@
 
 { 
   imports = [ 
-    ../admin
+    ../admin/default.nix
     ../features
     ./home.nix
     ./dotfiles/nvim 

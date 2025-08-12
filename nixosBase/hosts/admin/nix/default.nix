@@ -5,5 +5,5 @@
     ./optimise/defult.nix
     ./registry/default.nix
     ./settings/defautl.nix
-  ]
+  ];
 }

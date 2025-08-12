@@ -17,13 +17,7 @@
 
       config = { pkgs, ... }: {
         users.groups.media = { };
-        users.groups."calibre-web" = { };
-        users.users."calibre-web" = {
-          isSystemUser = true;
-          group = "calibre-web";
-          extraGroups = [ "media" ];
-        };
-
+              
       services.calibre-web = {
         enable = true;
         group = "media";

@@ -36,7 +36,7 @@
 │   │   │   │   └── default.nix
 │   │   │   └── settings
 │   │   │       └── default.nix
-│   │   ├── ogdefault.nix
+│   │   ├── oldDefault
 │   │   ├── overlays
 │   │   │   └── default.nix
 │   │   └── unfree
@@ -112,53 +112,109 @@
 
 ===== FILE CONTENTS =====
 
-===== ./allCode.txt =====
-
-===== ./home/features/default.nix =====
-{pkgs, ... }: 
+===== ./overlays/default.nix =====
+{ inputs, ... }: 
 
 {
-    imports = [
-    ./alias/default.nix
-    ./fastfetch/default.nix
-    ];
+  # This one brings our custom packages from the 'pkgs' directory
+  additions = final: _prev: import ../pkgs { pkgs = final; };
 
-  programs.eza = {
-    enable = true;
-    enableFishIntegration = true;
-    enableBashIntegration = true;
-    extraOptions = ["-l" "--icons" "--git" "-a"];
+  # This one contains whatever you want to overlay
+  # You can change versions, add patches, set compilation flags, anything really.
+  # https://nixos.wiki/wiki/Overlays
+  modifications = final: prev:
+    {
+      # Patch vagrant to ignore broken symlink check
+      vagrant = prev.vagrant.overrideAttrs (old: {
+      dontFixup = true;
+      });
+    };
+
+  stable-packages = final: _prev: {
+    pkgsStable = import inputs.nixpkgs-stable {
+      system = final.system;
+      config.allowUnfree = true;
+    };
   };
-
-  programs.bat = {enable = true;};
-
-  home.packages = with pkgs; [
-    coreutils 
-    fd
-    htop
-    httpie
-    jq
-    procs
-    ripgrep
-    tldr
-    zip 
-  ];
 }
 
-===== ./home/features/fastfetch/default.nix =====
+
+===== ./home/nixos/dotfiles/nvim/default.nix =====
+{ inputs, ... }:
+
+{
+home.file.".config/nvim" = { 
+    source = "${inputs.nvimDotfiles}/nvim";
+    recursive = true;
+  };
+}
+
+===== ./home/nixos/admin.nix =====
+{ config, ... }: 
+
+{ 
+  imports = [ 
+    ../admin
+    ../features
+    ./home.nix
+    ./dotfiles/nvim 
+  ]; 
+
+  features = {
+    cli = {
+    fastfetch.enable = true;
+    };
+  };
+}
+
+
+===== ./home/nixos/home.nix =====
 { config, lib, pkgs, ... }:
 
-with lib; let 
-  cfg = config.features.cli.fastfetch;
-in {
-    options.features.cli.fastfetch.enable = mkEnableOption "enable fastfetch";
+{
+  home.username = lib.mkDefault "admin";
+  home.homeDirectory = lib.mkDefault "/home/${config.home.username}";
 
-    config = mkIf cfg.enable {
-        home.packages = with pkgs; [fastfetch];
-    };
+  home.stateVersion = "24.05";
+
+  home.packages = import ../../pkgs/userPackages { inherit pkgs; };
+
+  home.sessionVariables = {
+    EDITOR = "nvim";
+  };
+
+  programs.home-manager.enable = true;
 }
 
+===== ./home/admin/default.nix =====
+{ config, lib, outputs, pkgs, ... }: 
 
+{
+   nixpkgs = {
+
+    # Overlays
+    overlays = [
+    outputs.overlays.additions
+    outputs.overlays.modifications
+    outputs.overlays.stable-packages
+
+    ];
+
+    config = {
+    allowUnfree = true;
+
+    allowUnfreePredicate = _: true;
+  };
+};
+
+  nix = {
+    package = lib.mkDefault pkgs.nix;
+    settings = {
+      experimental-features = ["nix-command" "flakes"];
+      warn-dirty = false;
+    };
+  };
+}
 
 ===== ./home/features/alias/default.nix =====
 { config, lib, ... }:
@@ -222,295 +278,41 @@ in {
 }
 
 
-===== ./home/admin/default.nix =====
-{ config, lib, outputs, pkgs, ... }: 
-
-{
-   nixpkgs = {
-
-    # Overlays
-    overlays = [
-    outputs.overlays.additions
-    outputs.overlays.modifications
-    outputs.overlays.stable-packages
-
-    ];
-
-    config = {
-    allowUnfree = true;
-
-    allowUnfreePredicate = _: true;
-  };
-};
-
-  nix = {
-    package = lib.mkDefault pkgs.nix;
-    settings = {
-      experimental-features = ["nix-command" "flakes"];
-      warn-dirty = false;
-    };
-  };
-}
-
-===== ./home/nixos/dotfiles/nvim/default.nix =====
-{ inputs, ... }:
-
-{
-home.file.".config/nvim" = { 
-    source = "${inputs.nvimDotfiles}/nvim";
-    recursive = true;
-  };
-}
-
-===== ./home/nixos/home.nix =====
+===== ./home/features/fastfetch/default.nix =====
 { config, lib, pkgs, ... }:
 
-{
-  home.username = lib.mkDefault "admin";
-  home.homeDirectory = lib.mkDefault "/home/${config.home.username}";
+with lib; let 
+  cfg = config.features.cli.fastfetch;
+in {
+    options.features.cli.fastfetch.enable = mkEnableOption "enable fastfetch";
 
-  home.stateVersion = "24.05";
-
-  home.packages = import ../../pkgs/userPackages { inherit pkgs; };
-
-  home.sessionVariables = {
-    EDITOR = "nvim";
-  };
-
-  programs.home-manager.enable = true;
-}
-
-===== ./home/nixos/admin.nix =====
-{ config, ... }: 
-
-{ 
-  imports = [ 
-    ../admin
-    ../features
-    ./home.nix
-    ./dotfiles/nvim 
-  ]; 
-
-  features = {
-    cli = {
-    fastfetch.enable = true;
+    config = mkIf cfg.enable {
+        home.packages = with pkgs; [fastfetch];
     };
-  };
 }
 
 
-===== ./flake.nix =====
-{
-  description = "Configuration for Nixos Server";
 
-inputs = {
-    # Manages Dotfiles
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Unstable Nixos 
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
-    # Stable Nixos
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-24.05";
-
-    # Declarative Partions
-    disko = {
-      url = "github:nix-community/disko";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    #colmena.url = "github.zhaofengli/colmena";
-
-    #Encryption for Secrets
-    #agenix.url = "github:ryantm/agenix";
-    #secrets = { 
-    #  url = "path:./secrets";
-    #  flake = false;
-    #};
-    
-    # My Nvim Configuration
-    nvimDotfiles = {
-    url = "git+https://github.com/dbochoa77/nvim.git";
-    flake = false;
-    };
-  };
- 
-    outputs = { self, disko, nvimDotfiles, home-manager, nixpkgs, ...} @ inputs: let
-      inherit (self) outputs;
-      systems = [ "x86_64-linux" "aarch64-linux" ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;  
-    in {
-    overlays = import ./overlays {inherit inputs;};
-
-    nixosConfigurations = {
-        nixos = nixpkgs.lib.nixosSystem {
-	  specialArgs = {inherit inputs outputs;
-	  user = "admin";
-	  hostname = "nixos";
-	  };
-
-	  modules = [
-	    ./hosts/nixos/default.nix
-      	    inputs.disko.nixosModules.disko
-	  ];
-	};
-      };
-
-      homeConfigurations = { 
-        "nixos" = home-manager.lib.homeManagerConfiguration {
-	  pkgs = nixpkgs.legacyPackages."x86_64-linux";
-	  extraSpecialArgs = {inherit inputs outputs;};
-	  modules = [./home/nixos/admin.nix];
-        };
-      };
-
-    #colmena = { 
-    #	meta = {
-    #	  nixpkgs = import nixpkgs {
-    #	    system = "x86_64-linux";
-    #	};
-    #  specialArgs = {inherit inputs ouputs;};
-    #	  };
-    #   };
-    #  };
-  };
-}
-
-===== ./printAll.sh =====
-#!/usr/bin/env bash
-
-# Usage: ./printAll.sh /path/to/dir output.txt
-
-TARGET_DIR="${1:-.}"             # Default to current directory if not provided
-OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
-
-# Clear or create output file
-> "$OUTPUT_FILE"
-
-# Add directory tree structure (ignoring .git)
-echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
-tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
-echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
-
-# Loop through all files except inside .git and append content
-find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
-    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
-    cat "$file" >> "$OUTPUT_FILE"
-done
-
-echo "✅ All contents saved to $OUTPUT_FILE"
-
-
-===== ./overlays/default.nix =====
-{ inputs, ... }: 
+===== ./home/features/default.nix =====
+{pkgs, ... }: 
 
 {
-  # This one brings our custom packages from the 'pkgs' directory
-  additions = final: _prev: import ../pkgs { pkgs = final; };
+    imports = [
+    ./alias/default.nix
+    ./fastfetch/default.nix
+    ];
 
-  # This one contains whatever you want to overlay
-  # You can change versions, add patches, set compilation flags, anything really.
-  # https://nixos.wiki/wiki/Overlays
-  modifications = final: prev:
-    {
-      # Patch vagrant to ignore broken symlink check
-      vagrant = prev.vagrant.overrideAttrs (old: {
-      dontFixup = true;
-      });
-    };
-
-  stable-packages = final: _prev: {
-    pkgsStable = import inputs.nixpkgs-stable {
-      system = final.system;
-      config.allowUnfree = true;
-    };
+  programs.eza = {
+    enable = true;
+    enableFishIntegration = true;
+    enableBashIntegration = true;
+    extraOptions = ["-l" "--icons" "--git" "-a"];
   };
-}
 
+  programs.bat = {enable = true;};
 
-===== ./pkgs/default.nix =====
-{ pkgs }:
-
-{
-  systemPackages = import ./systemPackages { inherit pkgs; };
-  userPackages   = import ./userPackages { inherit pkgs; };
-}
-
-
-
-===== ./pkgs/systemPackages/developerTools/default.nix =====
-{ pkgs }: with pkgs; [
-    gcc
-    nodejs
-    curl
-    wget
-    unzip
-    gnutar
-    gzip
-    cacert
-    gnumake
-    git 
-    python3
-    python3Packages.pip
-    xclip 
-    ninja
-    gdb
-    cmake
-    pkg-config
-]
-
-
-
-===== ./pkgs/systemPackages/utilities/default.nix =====
-{ pkgs }: with pkgs; [
-  dmenu
-  curl
-  wget
-  rsync
-  st
-  unzip
-  zip
-  zstd
-  p7zip
-  ntfs3g
-  dosfstools
-  exfatprogs
-  util-linux
-  brightnessctl
-  htop
-  rtkit
-  tmux
-  timeshift
-  udisks
-]
-
-===== ./pkgs/systemPackages/nixos-tools/default.nix =====
-{ pkgs }: with pkgs; [
-    home-manager
-]
-
-===== ./pkgs/systemPackages/default.nix =====
-{ pkgs }: 
-( import ./developerTools { inherit pkgs; })
-++
-( import ./nixos-tools { inherit pkgs; })
-++
-( import ./security { inherit pkgs; })
-++
-( import ./utilities{ inherit pkgs; })
-
-===== ./pkgs/systemPackages/security/default.nix =====
-{ pkgs }: with pkgs; [
-    openssl
-    nftables
-]
-
-===== ./pkgs/userPackages/homemanger/default.nix =====
-{ pkgs }: with pkgs; [
-    coreutils
+  home.packages = with pkgs; [
+    coreutils 
     fd
     htop
     httpie
@@ -518,34 +320,595 @@ echo "✅ All contents saved to $OUTPUT_FILE"
     procs
     ripgrep
     tldr
-    zip
-]
+    zip 
+  ];
+}
+
+===== ./hosts/nixos/services/unfree/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  nixpkgs.config.allowUnfree = true;    
+}
+
+===== ./hosts/nixos/services/flakes/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    trusted-users = [ "root" "admin"];
+  };
+}
 
 
-===== ./pkgs/userPackages/utilities/default.nix =====
-{ pkgs }: with pkgs; [
-    nano
-    neovim
-    vim
-    sutils
-    cowsay
-    tree
-]
+===== ./hosts/nixos/services/ssh/default.nix =====
+{ config, pkgs, ... }:
 
-===== ./pkgs/userPackages/default.nix =====
-{ pkgs }:
+{  
+  services.openssh = {
+     enable = true;
+     settings.PermitRootLogin = "no";
+     allowSFTP = true;
+   };
 
-(import ./terminal { inherit pkgs; })
-++ 
-(import ./utilities { inherit pkgs; })
-++
-(import ./homemanger {inherit pkgs; })
+    services.openssh.extraConfig = ''
+    X11Forwarding yes
+    X11DisplayOffset 10
+    X11UseLocalhost yes
+  '';
 
-===== ./pkgs/userPackages/terminal/default.nix =====
-{ pkgs }: with pkgs; [
-    zsh
-    fastfetch
-]
+  services.openssh.settings.X11Forwarding = true;
+  
+  environment.systemPackages = with pkgs; [
+    xorg.xauth
+  ];
+}
+
+===== ./hosts/nixos/services/keymaps/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+}
+
+===== ./hosts/nixos/services/autoUpgrade/default.nix =====
+ { config, pkgs, ... }:
+
+ {
+   system.autoUpgrade = {
+    enable = true;
+    flake = inputs.self.outPath;
+    flags = [
+      "--update-input"
+      "nixpkgs"
+      "--no-write-lock-file"
+      "-L" # print build logs
+    ];
+    dates = "02:00";
+    randomizedDelaySec = "45min";
+  };
+ }
+
+===== ./hosts/nixos/services/timezone/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  time.timeZone = "America/Los_Angeles";
+}
+
+===== ./hosts/nixos/services/stateVersion/default.nix =====
+{ config, pkgs, ... }:
+
+{ 
+  system.stateVersion = "25.11";
+}
+
+===== ./hosts/nixos/services/internationisationProps/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "en_US.UTF-8";
+    LC_IDENTIFICATION = "en_US.UTF-8";
+    LC_MEASUREMENT = "en_US.UTF-8";
+    LC_MONETARY = "en_US.UTF-8";
+    LC_NAME = "en_US.UTF-8";
+    LC_NUMERIC = "en_US.UTF-8";
+    LC_PAPER = "en_US.UTF-8";
+    LC_TELEPHONE = "en_US.UTF-8";
+    LC_TIME = "en_US.UTF-8";
+  };
+}
+
+===== ./hosts/nixos/services/user/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  users.users.admin = {
+    isNormalUser = true;
+    description = "admin";
+    extraGroups = [ "media" "networkmanager" "wheel" "docker" ];
+  };
+}
+
+===== ./hosts/nixos/services/boot/latestKernel/default.nix =====
+{ config, pkgs, ... }:
+
+{
+    boot.kernelPackages = pkgs.linuxPackages_latest;
+}
+
+===== ./hosts/nixos/services/boot/systemd/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+    };
+}
+
+===== ./hosts/nixos/services/boot/default.nix =====
+{
+  imports = [
+    ./systemd/default.nix
+    ./latestKernel/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/networking/default.nix =====
+{ config, pkgs, ... }:
+
+{
+networking.networkmanager.enable = true;
+networking.firewall.allowedTCPPorts = [ 80  22 ];
+}
+
+
+===== ./hosts/nixos/services/default.nix =====
+{
+  imports = [
+    ./boot/default.nix
+    ./containers/default.nix
+    ./flakes/default.nix
+    ./hostname/default.nix
+    ./internationisationProps/default.nix
+    ./keymaps/default.nix
+    ./networking/default.nix
+    ./ssh/default.nix
+    ./stateVersion/default.nix
+    ./timezone/default.nix
+    ./unfree/default.nix
+    ./user/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/containers/wireguard/default.nix =====
+{ config, pkgs, ... }:
+
+{
+
+}
+
+===== ./hosts/nixos/services/containers/httpd/default.nix =====
+{
+  containers.httpd = { 
+    autoStart = true;
+    ephemeral = true;
+    #    privateNetwork = true;
+    #    hostAddress = "192.168.122.1";
+    #    localAddress = "192.168.122.130";
+    config = {...}: {
+     system.stateVersion = "25.11";
+     services.httpd = {
+      enable = true;
+      adminAddr = "foo@example.org";
+     };
+    };   
+    bindMounts = {
+        "/root/data" = {
+          hostPath = "/home/admin/data";
+          isReadOnly = false;
+         };
+       };
+     };
+}
+
+===== ./hosts/nixos/services/containers/echo/default.nix =====
+{lib, ...}: {
+  virtualisation.oci-containers.containers."echo-http-service" = {
+    image = "hashicorp/http-echo";
+    extraOptions = ["-text='Hello, World!'" "--network=web"];
+    ports = ["5678:5678"];
+  };
+
+  system.activationScripts.createPodmanNetworkWeb = lib.mkAfter ''
+    if ! /run/current-system/sw/bin/podman network exists web; then
+      /run/current-system/sw/bin/podman network create web
+    fi
+  '';
+}
+
+
+===== ./hosts/nixos/services/containers/default.nix =====
+{
+  imports = [
+    ./wireguard/default.nix
+    ./echo/default.nix
+    ./httpd/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/hostname/default.nix =====
+{ config, pkgs, hostname, ... }:
+
+{
+    networking.hostName = hostname;
+}
+
+===== ./hosts/nixos/hardware-configuration.nix =====
+# Do not modify this file!  It was generated by ‘nixos-generate-config’
+# and may be overwritten by future invocations.  Please make changes
+# to /etc/nixos/configuration.nix instead.
+{ config, lib, pkgs, modulesPath, ... }:
+
+{
+  imports =
+    [ (modulesPath + "/profiles/qemu-guest.nix")
+    ];
+
+  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk" ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ "kvm-intel" ];
+  boot.extraModulePackages = [ ];
+
+  #  fileSystems."/" =
+  #    { device = "/dev/disk/by-uuid/f2dc1a58-84af-4777-93d6-1f16ace67e2c";
+  #      fsType = "ext4";
+  #    };
+  #
+  #  fileSystems."/boot" =
+  #    { device = "/dev/disk/by-uuid/D244-BDA2";
+  #      fsType = "vfat";
+  #      options = [ "fmask=0077" "dmask=0077" ];
+  #    };
+  #
+  #swapDevices = [ ];
+
+  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
+  # (the default) this is the recommended approach. When using systemd-networkd it's
+  # still possible to use this option, but it's recommended to use it in conjunction
+  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
+  networking.useDHCP = lib.mkDefault true;
+  # networking.interfaces.enp1s0.useDHCP = lib.mkDefault true;
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+}
+
+===== ./hosts/nixos/disko-config.nix =====
+{
+  disko.devices = {
+    disk = {
+      nixos = {
+        type = "disk";
+        device = "/dev/vda";
+        content = {
+          type = "gpt";
+          partitions = {
+            boot = {
+              size = "1M";
+              type = "EF02"; # for grub MBR
+            };
+            ESP = {
+              size = "512M";
+              type = "EF00";
+              content = {
+                type = "filesystem";
+                format = "vfat";
+                mountpoint = "/boot";
+              };
+            };
+            swap = { 
+              size = "8G";
+              content = {
+                type = "swap";
+              };
+            };
+            root = {
+              size = "100%";
+              content = {
+                type = "filesystem";
+                format = "ext4";
+                mountpoint = "/";
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}
+
+
+===== ./hosts/nixos/default.nix =====
+{ config, inputs, outputs, lib, pkgs, ... }:
+
+{
+ imports = [
+   ./hardware-configuration.nix
+   ./services
+   ../admin
+   ../admin/extraServices
+   ./configuration.nix
+   inputs.home-manager.nixosModules.home-manager
+   inputs.disko.nixosModules.disko
+  ];
+
+  extraServices.podman.enable = true;
+
+  home-manager = {
+   useUserPackages = true;
+   extraSpecialArgs = { inherit inputs outputs; };
+   users.admin = 
+   import ../../home/nixos/admin.nix; 
+  
+   }; 
+}
+
+===== ./hosts/nixos/configuration.nix =====
+{ config, pkgs, lib, ... }:
+
+{
+  imports =
+    [
+      ./services/default.nix
+      ./disko-config.nix
+    ];
+
+  environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
+}
+
+===== ./hosts/admin/unfree/default.nix =====
+{ pkgs, config, ... }
+
+{
+  config = {
+    allowUnfree = true;
+  };
+}
+
+===== ./hosts/admin/overlays/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  nixpkgs = {
+    overlays = [
+      outputs.overlays.additions
+      outputs.overlays.modifications
+      outputs.overlays.stable-packages
+    ];
+}
+
+===== ./hosts/admin/oldDefault =====
+{ lib, pkgs, inputs, outputs, ... }: 
+
+{
+  imports = [
+	./users 
+	inputs.home-manager.nixosModules.home-manager
+  ];
+
+  home-manager = { 
+    useUserPackages = true;
+    extraSpecialArgs = {inherit inputs outputs; };
+  };
+
+  nixpkgs = { 
+    overlays = [
+      outputs.overlays.additions
+      outputs.overlays.modifications
+      outputs.overlays.stable-packages
+    ];
+
+  # Allows Closed Sourced packages
+    config = {
+      allowUnfree = true;
+    };
+  };
+
+  # Experimental Features Nix-command and Flakes
+  nix = let 
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+  in { 
+    settings = {
+      experimental-features = ["nix-command" "flakes"];
+      trusted-users = [
+        "root"
+	"admin"
+      ];
+    };
+
+    # Automaticlly Cleans Nixos Generations 30d older
+    gc = {
+      automatic = true; 
+      options = "--delete-older-than 30d";
+    };
+  
+    optimise.automatic = true;
+ 
+    registry = 
+      lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+
+    nixPath = 
+	["/etc/nix/path"] 
+	++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs; 
+  };
+}
+
+
+===== ./hosts/admin/home-manager/default.nix =====
+{ config, pkgs, ... }: 
+
+{
+  home-manager = {
+    useUserPackages = true;
+    extraSpecialArgs = {inherit inputs outputs; };
+  };
+}
+
+===== ./hosts/admin/nix/settings/default.nix =====
+{ config, pkgs, ... }: 
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            settings = {
+                experimental-features = ["nix-command" "flakes"];
+                    trusted-users = [
+                        "root"
+                        "admin"
+                    ];
+                };
+            };
+}
+
+===== ./hosts/admin/nix/registry/default.nix =====
+{ config, pkgs, ... }:
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs; {
+        registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+    }
+}
+
+
+===== ./hosts/admin/nix/nixPath/default.nix =====
+{ config, pkgs, ... }:
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        nixPath =
+        ["/etc/nix/path"]
+        ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
+    };
+}
+
+===== ./hosts/admin/nix/default.nix =====
+{
+  imports = [
+    ./generalCleanup/default.nix
+    ./nixPath/default.nix
+    ./optimise/defult.nix
+    ./registry/default.nix
+    ./settings/defautl.nix
+  ]
+}
+
+===== ./hosts/admin/nix/optimise/default.nix =====
+{ config, pkgs, ... }:
+
+{
+    nix = let
+        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+            in {
+                gc = {
+                automatic = true;
+                options = "--delete-older-than 30d";
+            };
+        }
+}
+
+===== ./hosts/admin/nix/generalCleanup/default.nix =====
+{ config, pkgs, ... }:
+
+{ 
+    nix = let
+        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+            in {
+                gc = {
+                automatic = true;
+                options = "--delete-older-than 30d";
+            };
+    };
+}
+
+===== ./hosts/admin/default.nix =====
+{ config, inputs, outputs, lib, pkgs, ... }:
+
+{
+  imports = [
+    ./home-manager/default.nix
+    ./nix/default.nix
+    ./overlays/default.nix
+    ./unfree/default.nix
+  ];
+}
+
+===== ./allCode.txt =====
+
+===== ./bootstrapNixosBase.sh =====
+#!/usr/bin/env bash
+
+set -e
+
+# Variables
+XINITRC="$HOME/.xinitrc"
+
+echo "[*] Partioning with Disko" 
+sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode destroy,format,mount /tmp/disk-config.nix
+
+echo "[*] Cleaning system for Nixos Installation
+sudo nix-collect-garbage -d && sudo nix store gc --extra-experimental-features "nix-command" && sudo nix store optimise
+
+echo "[*] Changing Repo Name to Nixos"
+mv /home/dbochoa77/nixosConfiguration /home/dbochoa77/nixos
+
+echo "[*] Moving hardware configuration"
+sudo mv /etc/nixos/hardware-configuration.nix /home/dbochoa77/nixos/hosts/nixos/
+
+echo "[*] Removing Nixos Legacy Location"
+sudo rm -fr /etc/nixos
+
+echo "[*] Updating Nixos Flake Channel..."
+nix flake update 
+
+echo "[*] Rebuilding NixOS system..."
+sudo nixos-rebuild switch --flake .#nixos
+
+echo "[*] Updating Home Manager configuration..."
+home-manager switch --flake .#nixos
+
+echo "[*] Creating .xinitrc..."
+cat > "$XINITRC" <<EOF
+#!/bin/sh
+
+# Launch DWM
+exec ~/.config/dwm/dwm
+
+# Compositor
+picom --config ~/.config/picom.conf &
+
+# Set wallpaper 
+feh --no-fehbg --bg-scale /home/dbochoa77/personal/Wallpapers/hannibalCrossingTheAlps.jpg &
+
+EOF
+
+chmod +x "$XINITRC"
+
+echo "[*] .xinitrc created successfully."
+echo "[*] Done! You can start your DWM session with 'startx'."
+
+echo "[*] Removing Bootstrap.sh, Thank you !!"
+rm ~/nixos/bootstrap.sh
 
 ===== ./flake.lock =====
 {
@@ -652,583 +1015,223 @@ echo "✅ All contents saved to $OUTPUT_FILE"
   "version": 7
 }
 
-===== ./bootstrapNixosBase.sh =====
+===== ./printAll.sh =====
 #!/usr/bin/env bash
 
-set -e
+# Usage: ./printAll.sh /path/to/dir output.txt
 
-# Variables
-XINITRC="$HOME/.xinitrc"
+TARGET_DIR="${1:-.}"             # Default to current directory if not provided
+OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
 
-echo "[*] Partioning with Disko" 
-sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode destroy,format,mount /tmp/disk-config.nix
+# Clear or create output file
+> "$OUTPUT_FILE"
 
-echo "[*] Cleaning system for Nixos Installation
-sudo nix-collect-garbage -d && sudo nix store gc --extra-experimental-features "nix-command" && sudo nix store optimise
+# Add directory tree structure (ignoring .git)
+echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
+tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
+echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
 
-echo "[*] Changing Repo Name to Nixos"
-mv /home/dbochoa77/nixosConfiguration /home/dbochoa77/nixos
+# Loop through all files except inside .git and append content
+find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
+    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+done
 
-echo "[*] Moving hardware configuration"
-sudo mv /etc/nixos/hardware-configuration.nix /home/dbochoa77/nixos/hosts/nixos/
+echo "✅ All contents saved to $OUTPUT_FILE"
 
-echo "[*] Removing Nixos Legacy Location"
-sudo rm -fr /etc/nixos
 
-echo "[*] Updating Nixos Flake Channel..."
-nix flake update 
-
-echo "[*] Rebuilding NixOS system..."
-sudo nixos-rebuild switch --flake .#nixos
-
-echo "[*] Updating Home Manager configuration..."
-home-manager switch --flake .#nixos
-
-echo "[*] Creating .xinitrc..."
-cat > "$XINITRC" <<EOF
-#!/bin/sh
-
-# Launch DWM
-exec ~/.config/dwm/dwm
-
-# Compositor
-picom --config ~/.config/picom.conf &
-
-# Set wallpaper 
-feh --no-fehbg --bg-scale /home/dbochoa77/personal/Wallpapers/hannibalCrossingTheAlps.jpg &
-
-EOF
-
-chmod +x "$XINITRC"
-
-echo "[*] .xinitrc created successfully."
-echo "[*] Done! You can start your DWM session with 'startx'."
-
-echo "[*] Removing Bootstrap.sh, Thank you !!"
-rm ~/nixos/bootstrap.sh
-
-===== ./hosts/admin/default.nix =====
-{ config, inputs, outputs, lib, pkgs, ... }:
-
+===== ./flake.nix =====
 {
-  imports = [
-    ./home-manager/default.nix
-    ./nix/default.nix
-    ./overlays/default.nix
-    ./unfree/default.nix
-  ]
-}
+  description = "Configuration for Nixos Server";
 
-===== ./hosts/admin/overlays/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  nixpkgs = {
-    overlays = [
-      outputs.overlays.additions
-      outputs.overlays.modifications
-      outputs.overlays.stable-packages
-    ];
-}
-
-===== ./hosts/admin/nix/registry/default.nix =====
-{ config, pkgs, ... }:
-
-{
-    registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
-}
-
-
-===== ./hosts/admin/nix/optimise/default.nix =====
-{ config, pkgs, ... }:
-
-{
-    nix = let
-        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-            in {
-                gc = {
-                automatic = true;
-                options = "--delete-older-than 30d";
-            };
-        }
-}
-
-===== ./hosts/admin/nix/settings/default.nix =====
-{ config, pkgs, ... }: 
-
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        in {
-            settings = {
-                experimental-features = ["nix-command" "flakes"];
-                    trusted-users = [
-                        "root"
-                        "admin"
-                    ];
-                };
-            };
-}
-
-===== ./hosts/admin/nix/default.nix =====
-{
-  imports = [
-    ./generalCleanup/default.nix
-    ./nixPath/default.nix
-    ./optimise/defult.nix
-    ./registry/default.nix
-    ./settings/defautl.nix
-  ]
-}
-
-===== ./hosts/admin/nix/generalCleanup/default.nix =====
-{ config, pkgs, ... }:
-
-{ 
-    nix = let
-        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-            in {
-                gc = {
-                automatic = true;
-                options = "--delete-older-than 30d";
-            };
+inputs = {
+    # Manages Dotfiles
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-}
 
-===== ./hosts/admin/nix/nixPath/default.nix =====
-{ config, pkgs, ... }:
+    # Unstable Nixos 
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        nixPath =
-        ["/etc/nix/path"]
-        ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
+    # Stable Nixos
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-24.05";
+
+    # Declarative Partions
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-}
 
-===== ./hosts/admin/ogdefault.nix =====
-{ lib, pkgs, inputs, outputs, ... }: 
+    #colmena.url = "github.zhaofengli/colmena";
 
-{
-  imports = [
-	./users 
-	inputs.home-manager.nixosModules.home-manager
-  ];
-
-  home-manager = { 
-    useUserPackages = true;
-    extraSpecialArgs = {inherit inputs outputs; };
-  };
-
-  nixpkgs = { 
-    overlays = [
-      outputs.overlays.additions
-      outputs.overlays.modifications
-      outputs.overlays.stable-packages
-    ];
-
-  # Allows Closed Sourced packages
-    config = {
-      allowUnfree = true;
+    #Encryption for Secrets
+    #agenix.url = "github:ryantm/agenix";
+    #secrets = { 
+    #  url = "path:./secrets";
+    #  flake = false;
+    #};
+    
+    # My Nvim Configuration
+    nvimDotfiles = {
+    url = "git+https://github.com/dbochoa77/nvim.git";
+    flake = false;
     };
   };
-
-  # Experimental Features Nix-command and Flakes
-  nix = let 
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-  in { 
-    settings = {
-      experimental-features = ["nix-command" "flakes"];
-      trusted-users = [
-        "root"
-	"admin"
-      ];
-    };
-
-    # Automaticlly Cleans Nixos Generations 30d older
-    gc = {
-      automatic = true; 
-      options = "--delete-older-than 30d";
-    };
-  
-    optimise.automatic = true;
  
-    registry = 
-      lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+    outputs = { self, disko, nvimDotfiles, home-manager, nixpkgs, ...} @ inputs: let
+      inherit (self) outputs;
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;  
+    in {
+    overlays = import ./overlays {inherit inputs;};
 
-    nixPath = 
-	["/etc/nix/path"] 
-	++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs; 
-  };
-}
+    nixosConfigurations = {
+        nixos = nixpkgs.lib.nixosSystem {
+	  specialArgs = {inherit inputs outputs;
+	  user = "admin";
+	  hostname = "nixos";
+	  };
 
+	  modules = [
+	    ./hosts/nixos/default.nix
+      	    inputs.disko.nixosModules.disko
+	  ];
+	};
+      };
 
-===== ./hosts/admin/unfree/default.nix =====
-{ pkgs, config, ... }
-
-{
-  config = {
-    allowUnfree = true;
-  };
-}
-
-===== ./hosts/admin/home-manager/default.nix =====
-{ config, pkgs, ... }: 
-
-{
-  home-manager = {
-    useUserPackages = true;
-    extraSpecialArgs = {inherit inputs outputs; };
-  };
-}
-
-===== ./hosts/nixos/services/keymaps/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-}
-
-===== ./hosts/nixos/services/internationisationProps/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  i18n.defaultLocale = "en_US.UTF-8";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
-}
-
-===== ./hosts/nixos/services/networking/default.nix =====
-{ config, pkgs, ... }:
-
-{
-networking.networkmanager.enable = true;
-networking.firewall.allowedTCPPorts = [ 80  22 ];
-}
-
-
-===== ./hosts/nixos/services/stateVersion/default.nix =====
-{ config, pkgs, ... }:
-
-{ 
-  system.stateVersion = "25.11";
-}
-
-===== ./hosts/nixos/services/ssh/default.nix =====
-{ config, pkgs, ... }:
-
-{  
-  services.openssh = {
-     enable = true;
-     settings.PermitRootLogin = "no";
-     allowSFTP = true;
-   };
-
-    services.openssh.extraConfig = ''
-    X11Forwarding yes
-    X11DisplayOffset 10
-    X11UseLocalhost yes
-  '';
-
-  services.openssh.settings.X11Forwarding = true;
-  
-  environment.systemPackages = with pkgs; [
-    xorg.xauth
-  ];
-}
-
-===== ./hosts/nixos/services/default.nix =====
-{
-  imports = [
-    ./boot/default.nix
-    ./containers/default.nix
-    ./flakes/default.nix
-    ./hostname/default.nix
-    ./internationisationProps/default.nix
-    ./keymaps/default.nix
-    ./networking/default.nix
-    ./ssh/default.nix
-    ./stateVersion/default.nix
-    ./timezone/default.nix
-    ./unfree/default.nix
-    ./user/default.nix
-  ];
-}
-
-===== ./hosts/nixos/services/timezone/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  time.timeZone = "America/Los_Angeles";
-}
-
-===== ./hosts/nixos/services/flakes/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "root" "admin"];
-  };
-}
-
-
-===== ./hosts/nixos/services/user/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  users.users.admin = {
-    isNormalUser = true;
-    description = "admin";
-    extraGroups = [ "media" "networkmanager" "wheel" "docker" ];
-  };
-}
-
-===== ./hosts/nixos/services/unfree/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  nixpkgs.config.allowUnfree = true;    
-}
-
-===== ./hosts/nixos/services/boot/systemd/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
-    };
-}
-
-===== ./hosts/nixos/services/boot/latestKernel/default.nix =====
-{ config, pkgs, ... }:
-
-{
-    boot.kernelPackages = pkgs.linuxPackages_latest;
-}
-
-===== ./hosts/nixos/services/boot/default.nix =====
-{
-  imports = [
-    ./systemd/default.nix
-    ./latestKernel/default.nix
-  ];
-}
-
-===== ./hosts/nixos/services/containers/httpd/default.nix =====
-{
-  containers.httpd = { 
-    autoStart = true;
-    ephemeral = true;
-    #    privateNetwork = true;
-    #    hostAddress = "192.168.122.1";
-    #    localAddress = "192.168.122.130";
-    config = {...}: {
-     system.stateVersion = "25.11";
-     services.httpd = {
-      enable = true;
-      adminAddr = "foo@example.org";
-     };
-    };   
-    bindMounts = {
-        "/root/data" = {
-          hostPath = "/home/admin/data";
-          isReadOnly = false;
-         };
-       };
-     };
-}
-
-===== ./hosts/nixos/services/containers/wireguard/default.nix =====
-{ config, pkgs, ... }:
-
-{
-
-}
-
-===== ./hosts/nixos/services/containers/default.nix =====
-{
-  imports = [
-    ./wireguard/default.nix
-    ./echo/default.nix
-    ./httpd/default.nix
-  ];
-}
-
-===== ./hosts/nixos/services/containers/echo/default.nix =====
-{lib, ...}: {
-  virtualisation.oci-containers.containers."echo-http-service" = {
-    image = "hashicorp/http-echo";
-    extraOptions = ["-text='Hello, World!'" "--network=web"];
-    ports = ["5678:5678"];
-  };
-
-  system.activationScripts.createPodmanNetworkWeb = lib.mkAfter ''
-    if ! /run/current-system/sw/bin/podman network exists web; then
-      /run/current-system/sw/bin/podman network create web
-    fi
-  '';
-}
-
-
-===== ./hosts/nixos/services/hostname/default.nix =====
-{ config, pkgs, hostname, ... }:
-
-{
-    networking.hostName = hostname;
-}
-
-===== ./hosts/nixos/services/autoUpgrade/default.nix =====
- { config, pkgs, ... }:
-
- {
-   system.autoUpgrade = {
-    enable = true;
-    flake = inputs.self.outPath;
-    flags = [
-      "--update-input"
-      "nixpkgs"
-      "--no-write-lock-file"
-      "-L" # print build logs
-    ];
-    dates = "02:00";
-    randomizedDelaySec = "45min";
-  };
- }
-
-===== ./hosts/nixos/configuration.nix =====
-{ config, pkgs, lib, ... }:
-
-{
-  imports =
-    [
-      ./services/default.nix
-      ./disko-config.nix
-    ];
-
-  environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
-}
-
-===== ./hosts/nixos/default.nix =====
-{ config, inputs, outputs, lib, pkgs, ... }:
-
-{
- imports = [
-   ./hardware-configuration.nix
-   ./services
-   ../admin
-   ../admin/extraServices
-   ./configuration.nix
-   inputs.home-manager.nixosModules.home-manager
-   inputs.disko.nixosModules.disko
-  ];
-
-  extraServices.podman.enable = true;
-
-  home-manager = {
-   useUserPackages = true;
-   extraSpecialArgs = { inherit inputs outputs; };
-   users.admin = 
-   import ../../home/nixos/admin.nix; 
-  
-   }; 
-}
-
-===== ./hosts/nixos/disko-config.nix =====
-{
-  disko.devices = {
-    disk = {
-      nixos = {
-        type = "disk";
-        device = "/dev/vda";
-        content = {
-          type = "gpt";
-          partitions = {
-            boot = {
-              size = "1M";
-              type = "EF02"; # for grub MBR
-            };
-            ESP = {
-              size = "512M";
-              type = "EF00";
-              content = {
-                type = "filesystem";
-                format = "vfat";
-                mountpoint = "/boot";
-              };
-            };
-            swap = { 
-              size = "8G";
-              content = {
-                type = "swap";
-              };
-            };
-            root = {
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/";
-              };
-            };
-          };
+      homeConfigurations = { 
+        "nixos" = home-manager.lib.homeManagerConfiguration {
+	  pkgs = nixpkgs.legacyPackages."x86_64-linux";
+	  extraSpecialArgs = {inherit inputs outputs;};
+	  modules = [./home/nixos/admin.nix];
         };
       };
-    };
+
+    #colmena = { 
+    #	meta = {
+    #	  nixpkgs = import nixpkgs {
+    #	    system = "x86_64-linux";
+    #	};
+    #  specialArgs = {inherit inputs ouputs;};
+    #	  };
+    #   };
+    #  };
   };
 }
 
+===== ./pkgs/systemPackages/security/default.nix =====
+{ pkgs }: with pkgs; [
+    openssl
+    nftables
+]
 
-===== ./hosts/nixos/hardware-configuration.nix =====
-# Do not modify this file!  It was generated by ‘nixos-generate-config’
-# and may be overwritten by future invocations.  Please make changes
-# to /etc/nixos/configuration.nix instead.
-{ config, lib, pkgs, modulesPath, ... }:
+===== ./pkgs/systemPackages/utilities/default.nix =====
+{ pkgs }: with pkgs; [
+  dmenu
+  curl
+  wget
+  rsync
+  st
+  unzip
+  zip
+  zstd
+  p7zip
+  ntfs3g
+  dosfstools
+  exfatprogs
+  util-linux
+  brightnessctl
+  htop
+  rtkit
+  tmux
+  timeshift
+  udisks
+]
+
+===== ./pkgs/systemPackages/nixos-tools/default.nix =====
+{ pkgs }: with pkgs; [
+    home-manager
+]
+
+===== ./pkgs/systemPackages/developerTools/default.nix =====
+{ pkgs }: with pkgs; [
+    gcc
+    nodejs
+    curl
+    wget
+    unzip
+    gnutar
+    gzip
+    cacert
+    gnumake
+    git 
+    python3
+    python3Packages.pip
+    xclip 
+    ninja
+    gdb
+    cmake
+    pkg-config
+]
+
+
+
+===== ./pkgs/systemPackages/default.nix =====
+{ pkgs }: 
+( import ./developerTools { inherit pkgs; })
+++
+( import ./nixos-tools { inherit pkgs; })
+++
+( import ./security { inherit pkgs; })
+++
+( import ./utilities{ inherit pkgs; })
+
+===== ./pkgs/default.nix =====
+{ pkgs }:
 
 {
-  imports =
-    [ (modulesPath + "/profiles/qemu-guest.nix")
-    ];
-
-  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk" ];
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
-  boot.extraModulePackages = [ ];
-
-  #  fileSystems."/" =
-  #    { device = "/dev/disk/by-uuid/f2dc1a58-84af-4777-93d6-1f16ace67e2c";
-  #      fsType = "ext4";
-  #    };
-  #
-  #  fileSystems."/boot" =
-  #    { device = "/dev/disk/by-uuid/D244-BDA2";
-  #      fsType = "vfat";
-  #      options = [ "fmask=0077" "dmask=0077" ];
-  #    };
-  #
-  #swapDevices = [ ];
-
-  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
-  # (the default) this is the recommended approach. When using systemd-networkd it's
-  # still possible to use this option, but it's recommended to use it in conjunction
-  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
-  networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.enp1s0.useDHCP = lib.mkDefault true;
-
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  systemPackages = import ./systemPackages { inherit pkgs; };
+  userPackages   = import ./userPackages { inherit pkgs; };
 }
+
+
+
+===== ./pkgs/userPackages/utilities/default.nix =====
+{ pkgs }: with pkgs; [
+    nano
+    neovim
+    vim
+    sutils
+    cowsay
+    tree
+]
+
+===== ./pkgs/userPackages/default.nix =====
+{ pkgs }:
+
+(import ./terminal { inherit pkgs; })
+++ 
+(import ./utilities { inherit pkgs; })
+++
+(import ./homemanger {inherit pkgs; })
+
+===== ./pkgs/userPackages/terminal/default.nix =====
+{ pkgs }: with pkgs; [
+    zsh
+    fastfetch
+]
+
+===== ./pkgs/userPackages/homemanger/default.nix =====
+{ pkgs }: with pkgs; [
+    coreutils
+    fd
+    htop
+    httpie
+    jq
+    procs
+    ripgrep
+    tldr
+    zip
+]
+

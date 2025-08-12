@@ -1,4 +1,4 @@
-{ config, pkgs, outputs, ... }: 
+{ config, pkgs, inputs, outputs, ... }: 
 
 {
   home-manager = {

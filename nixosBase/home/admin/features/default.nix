@@ -1,4 +1,4 @@
-{pkgs, ... }: 
+{ config, pkgs, ... }: 
 
 {
     imports = [
@@ -6,6 +6,7 @@
     ./fastfetch/default.nix
     ./bat/default.nix
     ./eza/default.nix
+    ./github/default.nix
     ];
 
 }

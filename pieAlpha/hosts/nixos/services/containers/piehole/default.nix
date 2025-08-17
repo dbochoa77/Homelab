@@ -17,6 +17,7 @@
     ];
 
     config = { pkgs, ... }: {
+      system.stateVersion = "25.11";
       services.pihole-ftl.enable = true;
       #      services.pihole-ftl.webPassword = "passwd";
       networking.firewall.allowedTCPPorts = [ 53 80 ];

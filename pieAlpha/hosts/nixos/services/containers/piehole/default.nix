@@ -17,8 +17,8 @@
     ];
 
     config = { pkgs, ... }: {
-      services.pihole.enable = true;
-      services.pihole.webPassword = "passwd";
+      services.pihole-ftl.enable = true;
+      #      services.pihole-ftl.webPassword = "passwd";
       networking.firewall.allowedTCPPorts = [ 53 80 ];
       networking.firewall.allowedUDPPorts = [ 53 ];
     };

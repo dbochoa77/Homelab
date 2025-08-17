@@ -1,5 +1,5 @@
 {
   imports = [
-    #  ./httpd/default.nix
+    ./piehole/default.nix
   ];
 }

@@ -5,7 +5,7 @@
    ./hardware-configuration.nix
    ./services
    ../admin
-   ./configuration.nix
+   ./configuration.nix 
    inputs.home-manager.nixosModules.home-manager
   ];
 
@@ -16,8 +16,6 @@
    import ../../home/nixos/default.nix;  
    }; 
 
-  imports = [ ./host/services/containers/default.nix ];
-
-  containers.piehole.enable = true;
-  containers.calibreweb.enable = true;
+  host.containers.pihole.enable = true;
+  host.containers.calibreweb.enable = true;
 }

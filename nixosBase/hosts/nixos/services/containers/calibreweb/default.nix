@@ -1,20 +1,22 @@
 { lib, config, pkgs, ... }: 
 let 
-  cfg = config.containers.calibreweb;
+  cfg = config.host.containers.calibreweb;
 in {
-  options = { containers.calibreweb.enable = 
+  options.host.containers.calibreweb.enable = 
     lib.mkEnableOption "Calibre-web container";
-  };
 
     config = lib.mkIf cfg.enable {
+      
+      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+
       containers.calibreweb = {
         autoStart = true;
         privateNetwork = true;
         hostAddress = "10.233.5.1";
         localAddress = "10.233.5.2";
 
-      fowardPorts = [
-      { protocol = "tcp"; hostPort = 8083; containerPort = 8083 };
+      forwardPorts = [
+      { protocol = "tcp"; hostPort = 8083; containerPort = 8083; }
       ];
       
       bindMounts = { 

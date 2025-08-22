@@ -6,7 +6,7 @@
     #    hostAddress = "192.168.122.1";
     #    localAddress = "192.168.122.130";
     config = {...}: {
-     system.stateVersion = "25.11";
+     system.stateVersion = "25.05";
      services.httpd = {
       enable = true;
       adminAddr = "foo@example.org";

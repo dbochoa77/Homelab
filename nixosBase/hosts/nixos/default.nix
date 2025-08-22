@@ -15,4 +15,9 @@
    users.admin = 
    import ../../home/nixos/default.nix;  
    }; 
+
+  imports = [ ./host/services/containers/default.nix ];
+
+  containers.piehole.enable = true;
+  containers.calibreweb.enable = true;
 }

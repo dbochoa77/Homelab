@@ -1,5 +1,6 @@
-{
+{ ... }: {
   imports = [
-    ./httpd/default.nix
+    ./piehole/default.nix
+    ./calibreweb/default.nix
   ];
 }

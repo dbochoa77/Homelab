@@ -11,12 +11,14 @@ in {
 
       containers.calibreweb = {
         autoStart = true;
-        privateNetwork = true;
-        hostAddress = "10.233.5.1";
-        localAddress = "10.233.5.2";
+        privateNetwork = false;
+      #  hostAddress = "10.233.5.1";
+      #  localAddress = "10.233.5.2";
 
       forwardPorts = [
-      { protocol = "tcp"; hostPort = 8083; containerPort = 8083; }
+      { protocol = "tcp"; 
+        hostPort = 8083; 
+        containerPort = 8083; }
       ];
       
       bindMounts = { 

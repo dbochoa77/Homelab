@@ -16,6 +16,8 @@ in {
       config = { pkgs, ... }: {
         system.stateVersion = "25.05";
         services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "80"];
       };
     };
   };

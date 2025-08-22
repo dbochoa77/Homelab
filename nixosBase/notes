@@ -1,0 +1,8 @@
+sudo mkdir -p /tank/media/ebook /srv/calibre/data
+# (optional for testing) make them writable by anyone, then tighten later
+sudo chmod 777 /tank/media/ebook /srv/calibre/data
+# restart the unit
+sudo systemctl restart container@calibreweb.service
+
+
+sudo mkdir -p /tank/media/ebook /srv/calibre/data

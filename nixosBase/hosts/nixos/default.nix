@@ -6,6 +6,7 @@
    ./services
    ../admin
    ./configuration.nix 
+   ./containers/default.nix
    inputs.home-manager.nixosModules.home-manager
   ];
 
@@ -15,7 +16,4 @@
    users.admin = 
    import ../../home/nixos/default.nix;  
    }; 
-
-  host.containers.pihole.enable = true;
-  host.containers.calibreweb.enable = true;
 }

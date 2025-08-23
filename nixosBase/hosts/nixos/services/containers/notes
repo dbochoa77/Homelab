@@ -1,0 +1,9 @@
+FOR GRAFANA 
+sudo mkdir -p /srv/grafana
+
+# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
+sudo chown -R 472:472 /srv/grafana || true
+sudo chmod -R 0775 /srv/grafana
+
+FOR HOMER
+sudo mkdir -p /srv/homer/assets

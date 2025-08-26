@@ -1,9 +1,0 @@
-Services
-Gitea
-Textbooks services
-
-make sure your calibre is right
-sudo mkdir -p /srv/calibre/data
-sudo mkdir -p /tank/media/ebook
-
-

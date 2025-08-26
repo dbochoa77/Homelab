@@ -1,5 +1,0 @@
-{
-  imports = [
-    ./piehole/default.nix
-  ];
-}

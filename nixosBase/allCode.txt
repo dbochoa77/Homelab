@@ -53,6 +53,8 @@
 │   │       └── default.nix
 │   └── nixos
 │       ├── configuration.nix
+│       ├── containers
+│       │   └── default.nix
 │       ├── default.nix
 │       ├── disko-config.nix
 │       ├── hardware-configuration.nix
@@ -66,12 +68,45 @@
 │           │   └── systemd
 │           │       └── default.nix
 │           ├── containers
+│           │   ├── allCode.txt
 │           │   ├── calibreweb
-│           │   │   └── default.nix
+│           │   │   ├── bindMounts
+│           │   │   │   └── default.nix
+│           │   │   ├── config
+│           │   │   ├── containers
+│           │   │   │   └── default.nix
+│           │   │   ├── default.nix
+│           │   │   ├── forwardPorts
+│           │   │   │   └── default.nix
+│           │   │   └── networking
+│           │   │       └── default.nix
 │           │   ├── default.nix
-│           │   ├── httpd
+│           │   ├── forgejo
+│           │   ├── grafana
 │           │   │   └── default.nix
-│           │   └── pihole
+│           │   ├── homeAutomation
+│           │   │   └── default.nix
+│           │   ├── homer
+│           │   │   └── default.nix
+│           │   ├── jellyfin
+│           │   │   └── default.nix
+│           │   ├── loki
+│           │   │   └── default.nix
+│           │   ├── mosquitto
+│           │   │   └── default.nix
+│           │   ├── node-RED
+│           │   │   └── default.nix
+│           │   ├── notes
+│           │   ├── pihole
+│           │   │   └── default.nix
+│           │   ├── printAll.sh
+│           │   ├── prometheus
+│           │   │   └── default.nix
+│           │   ├── retroArch
+│           │   │   └── default.nix
+│           │   ├── uptime
+│           │   │   └── default.nix
+│           │   └── wireguard
 │           │       └── default.nix
 │           ├── default.nix
 │           ├── flakes
@@ -92,6 +127,7 @@
 │           │   └── default.nix
 │           └── user
 │               └── default.nix
+├── notes
 ├── overlays
 │   └── default.nix
 ├── pkgs
@@ -116,7 +152,7 @@
 │           └── default.nix
 └── printAll.sh
 
-56 directories, 60 files
+73 directories, 79 files
 
 ===== FILE CONTENTS =====
 
@@ -244,6 +280,7 @@ nix = let
    ./services
    ../admin
    ./configuration.nix 
+   ./containers/default.nix
    inputs.home-manager.nixosModules.home-manager
   ];
 
@@ -253,9 +290,6 @@ nix = let
    users.admin = 
    import ../../home/nixos/default.nix;  
    }; 
-
-  host.containers.piehole.enable = true;
-  host.containers.calibreweb.enable = true;
 }
 
 ===== ./hosts/nixos/services/flakes/default.nix =====
@@ -305,22 +339,173 @@ nix = let
   };
  }
 
-===== ./hosts/nixos/services/containers/default.nix =====
+===== ./hosts/nixos/services/containers/allCode.txt =====
+===== DIRECTORY STRUCTURE =====
+.
+├── allCode.txt
+├── calibreweb
+│   ├── bindMounts
+│   │   └── default.nix
+│   ├── config
+│   ├── containers
+│   │   └── default.nix
+│   ├── default.nix
+│   ├── forwardPorts
+│   │   └── default.nix
+│   └── networking
+│       └── default.nix
+├── default.nix
+├── grafana
+│   └── default.nix
+├── homeAutomation
+│   └── default.nix
+├── homer
+│   └── default.nix
+├── jellyfin
+│   └── default.nix
+├── loki
+│   └── default.nix
+├── mosquitto
+│   └── default.nix
+├── node-RED
+│   └── default.nix
+├── notes
+├── pihole
+│   └── default.nix
+├── printAll.sh
+├── prometheus
+│   └── default.nix
+├── retroArch
+│   └── default.nix
+├── uptime
+│   └── default.nix
+└── wireguard
+    └── default.nix
+
+19 directories, 21 files
+
+===== FILE CONTENTS =====
+
+===== ./allCode.txt =====
+
+===== ./loki/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable {
+
+===== ./grafana/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.grafana;
+in {
+  options.host.containers.grafana = {
+    enable       = lib.mkEnableOption "Grafana container";
+    hostAddress  = lib.mkOption { type = lib.types.str; default = "10.233.7.1"; };
+    localAddress = lib.mkOption { type = lib.types.str; default = "10.233.7.2"; };
+    port         = lib.mkOption { type = lib.types.int; default = 2342; };
+    dataDir      = lib.mkOption { type = lib.types.path; default = "/srv/grafana"; };
+  };
+
+  config = lib.mkIf cfg.enable {
+    containers.grafana = {
+      autoStart = true;
+      privateNetwork = true;
+      hostAddress  = cfg.hostAddress;
+      localAddress = cfg.localAddress;
+
+      # forward host :port -> container :port (no nginx needed)
+      forwardPorts = [
+        { protocol = "tcp"; hostPort = cfg.port; containerPort = cfg.port; }
+      ];
+
+      # persist data on the host
+      bindMounts."/var/lib/grafana" = {
+        hostPath = cfg.dataDir;
+        isReadOnly = false;
+      };
+
+      config = { pkgs, ... }: {
+        networking.hostName = "grafana";
+        services.grafana.settings.server = {
+          enable = true;
+          domain = "grafana.pele";
+          port   = cfg.port;
+          addr   = "127.0.0.1"; # only loopback inside the container
+        };
+        system.stateVersion = "25.11";
+      };
+    };
+  };
+}
+
+
+
+===== ./default.nix =====
 {
   imports = [
     ./pihole/default.nix
     ./calibreweb/default.nix
+    ./grafana/default.nix
+    ./homer/default.nix
   ];
 }
 
-===== ./hosts/nixos/services/containers/pihole/default.nix =====
+===== ./node-RED/default.nix =====
+
+===== ./notes =====
+FOR GRAFANA 
+sudo mkdir -p /srv/grafana
+
+# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
+sudo chown -R 472:472 /srv/grafana || true
+sudo chmod -R 0775 /srv/grafana
+
+FOR HOMER
+sudo mkdir -p /srv/homer/assets
+
+===== ./uptime/default.nix =====
+
+===== ./printAll.sh =====
+#!/usr/bin/env bash
+
+# Usage: ./printAll.sh /path/to/dir output.txt
+
+TARGET_DIR="${1:-.}"             # Default to current directory if not provided
+OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
+
+# Clear or create output file
+> "$OUTPUT_FILE"
+
+# Add directory tree structure (ignoring .git)
+echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
+tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
+echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
+
+# Loop through all files except inside .git and append content
+find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
+    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+done
+
+echo "✅ All contents saved to $OUTPUT_FILE"
+
+
+===== ./mosquitto/default.nix =====
+
+===== ./retroArch/default.nix =====
+
+===== ./pihole/default.nix =====
 { lib, config, pkgs, ... }:
 let 
-  cfg = config.containers.pihole;
+  cfg = config.host.containers.pihole;
 in { 
-  options = { 
-    containers.pihole.enable = lib.mkEnableOption "Pi-hole container";
-  }; 
+  options.host.containers.pihole.enable = 
+    lib.mkEnableOption "Pi-hole container"; 
 
     config = lib.mkIf cfg.enable {
       services.resolved.enable = false;
@@ -329,76 +514,551 @@ in {
      
     containers.pihole = {
       autoStart = true;
-      privateNetwork = false;
-      
+      privateNetwork = false; 
       config = { pkgs, ... }: {
         system.stateVersion = "25.05";
-
         services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "80"];
       };
     };
   };
 }
 
-===== ./hosts/nixos/services/containers/httpd/default.nix =====
-{
-  containers.httpd = { 
-    autoStart = true;
-    ephemeral = true;
-    #    privateNetwork = true;
-    #    hostAddress = "192.168.122.1";
-    #    localAddress = "192.168.122.130";
-    config = {...}: {
-     system.stateVersion = "25.05";
-     services.httpd = {
-      enable = true;
-      adminAddr = "foo@example.org";
-     };
-    };   
-    bindMounts = {
-        "/root/data" = {
-          hostPath = "/home/admin/data";
-          isReadOnly = false;
-         };
-       };
-     };
-}
-
-===== ./hosts/nixos/services/containers/calibreweb/default.nix =====
-{ lib, config, pkgs, ... }: 
-let 
-  cfg = config.containers.calibreweb;
+===== ./homer/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.homer;
 in {
-  options = { containers.calibreweb.enable = 
+  options.host.containers.homer.enable =
     lib.mkEnableOption "Calibre-web container";
-  };
 
     config = lib.mkIf cfg.enable {
-      
+      containers.homer = {
+        autoStart = true;
+        privateNetwork = true;
+        hostAddress  = "10.233.8.1";
+        localAddress = "10.233.8.2";
+
+      forwardPorts = [ { protocol = "tcp"; hostPort = 8080; containerPort = 8080; }
+      ];
+
+      bindMounts."/srv/homer/assets" = {
+        hostPath = "/srv/homer/assets";
+        isReadOnly = false;
+      };
+
+      config = { pkgs, ... }: {
+        networking.hostName = "homer";
+        services.nginx = {
+          enable = true;
+          virtualHosts."_" = {
+            root = "/srv/homer/assets";
+          };
+        };
+
+        # Install Homer package into /srv/homer/assets
+        systemd.services.setup-homer = {
+          description = "Populate Homer dashboard";
+          serviceConfig.Type = "oneshot";
+          wantedBy = [ "multi-user.target" ];
+          script = ''
+            mkdir -p /srv/homer/assets
+            cp -r ${pkgs.homer}/share/homer/* /srv/homer/assets/
+          '';
+        };
+
+        system.stateVersion = "25.05";
+      };
+    };
+  };
+}
+
+
+===== ./homeAutomation/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable {
+
+===== ./calibreweb/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  name = builtins.baseNameOf (toString ./.);
+in {
+  # make `containerName` available to the submodules
+  _module.args = { containerName = calibreweb; };
+
+  imports = [
+    ./options.nix
+    ./ports.nix
+    ./mounts.nix
+    ./inner.nix
+  ];
+}
+
+
+
+
+
+
+#{ lib, config, pkgs, ... }: 
+#let 
+#  cfg = config.host.containers.calibreweb;
+#in {
+#  options.host.containers.calibreweb.enable = 
+#    lib.mkEnableOption "Calibre-web container";
+#
+#    config = lib.mkIf cfg.enable {
+#      
+#      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+#
+#      containers.calibreweb = {
+#        autoStart = true;
+#        privateNetwork = false;
+#      #  hostAddress = "10.233.5.1";
+#      #  localAddress = "10.233.5.2";
+#
+#      forwardPorts = [
+#      { protocol = "tcp"; 
+#        hostPort = 8083; 
+#        containerPort = 8083; }
+#      ];
+#      
+#      bindMounts = { 
+#        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
+#        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
+#      };
+#
+#      config = { pkgs, ... }: {
+#        services.calibre-web.enable = true;
+#        system.stateVersion = "25.05";
+#      };
+#    };
+#  };
+#}
+
+===== ./calibreweb/containers/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+
       networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
 
       containers.calibreweb = {
         autoStart = true;
-        privateNetwork = true;
-        hostAddress = "10.233.5.1";
-        localAddress = "10.233.5.2";
+        privateNetwork = false;
+      #  hostAddress = "10.233.5.1";
+      #  localAddress = "10.233.5.2";
+    };
+  };
+};
 
-      fowardPorts = [
-      { protocol = "tcp"; hostPort = 8083; containerPort = 8083; }
-      ];
-      
-      bindMounts = { 
+===== ./calibreweb/bindMounts/default.nix =====
+   { lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+     bindMounts = {
         "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
         "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
+    };
+  }
+}
+
+===== ./calibreweb/forwardPorts/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      forwardPorts = [{
+        protocol = "tcp";
+        hostPort = 8083;
+        containerPort = 8083; }
+      ];
+    };
+  };
+}
+
+===== ./calibreweb/networking/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+  };
+}
+
+===== ./jellyfin/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable { 
+
+===== ./wireguard/default.nix =====
+
+===== ./prometheus/default.nix =====
+
+===== ./hosts/nixos/services/containers/loki/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable {
+
+===== ./hosts/nixos/services/containers/grafana/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.grafana;
+in {
+  options.host.containers.grafana = {
+    enable       = lib.mkEnableOption "Grafana container";
+    hostAddress  = lib.mkOption { type = lib.types.str; default = "10.233.7.1"; };
+    localAddress = lib.mkOption { type = lib.types.str; default = "10.233.7.2"; };
+    port         = lib.mkOption { type = lib.types.int; default = 2342; };
+    dataDir      = lib.mkOption { type = lib.types.path; default = "/srv/grafana"; };
+  };
+
+  config = lib.mkIf cfg.enable {
+    containers.grafana = {
+      autoStart = true;
+      privateNetwork = true;
+      hostAddress  = cfg.hostAddress;
+      localAddress = cfg.localAddress;
+
+      # forward host :port -> container :port (no nginx needed)
+      forwardPorts = [
+        { protocol = "tcp"; hostPort = cfg.port; containerPort = cfg.port; }
+      ];
+
+      # persist data on the host
+      bindMounts."/var/lib/grafana" = {
+        hostPath = cfg.dataDir;
+        isReadOnly = false;
       };
 
       config = { pkgs, ... }: {
-        services.calibre-web.enable = true;
+        networking.hostName = "grafana";
+        services.grafana.settings.server = {
+          enable = true;
+          domain = "grafana.pele";
+          port   = cfg.port;
+          addr   = "127.0.0.1"; # only loopback inside the container
+        };
+        system.stateVersion = "25.11";
+      };
+    };
+  };
+}
+
+
+
+===== ./hosts/nixos/services/containers/default.nix =====
+{
+  imports = [
+    ./pihole/default.nix
+    ./calibreweb/default.nix
+    ./grafana/default.nix
+    ./homer/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/containers/node-RED/default.nix =====
+
+===== ./hosts/nixos/services/containers/notes =====
+FOR GRAFANA 
+sudo mkdir -p /srv/grafana
+
+# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
+sudo chown -R 472:472 /srv/grafana || true
+sudo chmod -R 0775 /srv/grafana
+
+FOR HOMER
+sudo mkdir -p /srv/homer/assets
+
+===== ./hosts/nixos/services/containers/uptime/default.nix =====
+
+===== ./hosts/nixos/services/containers/printAll.sh =====
+#!/usr/bin/env bash
+
+# Usage: ./printAll.sh /path/to/dir output.txt
+
+TARGET_DIR="${1:-.}"             # Default to current directory if not provided
+OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
+
+# Clear or create output file
+> "$OUTPUT_FILE"
+
+# Add directory tree structure (ignoring .git)
+echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
+tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
+echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
+
+# Loop through all files except inside .git and append content
+find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
+    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+done
+
+echo "✅ All contents saved to $OUTPUT_FILE"
+
+
+===== ./hosts/nixos/services/containers/mosquitto/default.nix =====
+
+===== ./hosts/nixos/services/containers/retroArch/default.nix =====
+
+===== ./hosts/nixos/services/containers/pihole/default.nix =====
+{ lib, config, pkgs, ... }:
+let 
+  cfg = config.host.containers.pihole;
+in { 
+  options.host.containers.pihole.enable = 
+    lib.mkEnableOption "Pi-hole container"; 
+
+    config = lib.mkIf cfg.enable {
+      services.resolved.enable = false;
+      networking.firewall.allowedTCPPorts = [ 53 80 ];
+      networking.firewall.allowedUDPPorts = [ 53 ];
+     
+    containers.pihole = {
+      autoStart = true;
+      privateNetwork = false; 
+      config = { pkgs, ... }: {
+        system.stateVersion = "25.05";
+        services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "80"];
+      };
+    };
+  };
+}
+
+===== ./hosts/nixos/services/containers/homer/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.homer;
+in {
+  options.host.containers.homer.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      containers.homer = {
+        autoStart = true;
+        privateNetwork = true;
+        hostAddress  = "10.233.8.1";
+        localAddress = "10.233.8.2";
+
+      forwardPorts = [ { protocol = "tcp"; hostPort = 8080; containerPort = 8080; }
+      ];
+
+      bindMounts."/srv/homer/assets" = {
+        hostPath = "/srv/homer/assets";
+        isReadOnly = false;
+      };
+
+      config = { pkgs, ... }: {
+        networking.hostName = "homer";
+        services.nginx = {
+          enable = true;
+          virtualHosts."_" = {
+            root = "/srv/homer/assets";
+          };
+        };
+
+        # Install Homer package into /srv/homer/assets
+        systemd.services.setup-homer = {
+          description = "Populate Homer dashboard";
+          serviceConfig.Type = "oneshot";
+          wantedBy = [ "multi-user.target" ];
+          script = ''
+            mkdir -p /srv/homer/assets
+            cp -r ${pkgs.homer}/share/homer/* /srv/homer/assets/
+          '';
+        };
+
         system.stateVersion = "25.05";
       };
     };
   };
 }
+
+
+===== ./hosts/nixos/services/containers/homeAutomation/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable {
+
+===== ./hosts/nixos/services/containers/calibreweb/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  name = builtins.baseNameOf (toString ./.);
+in {
+  # make `containerName` available to the submodules
+  _module.args = { containerName = calibreweb; };
+
+  imports = [
+    ./options.nix
+    ./ports.nix
+    ./mounts.nix
+    ./inner.nix
+  ];
+}
+
+
+
+
+
+
+#{ lib, config, pkgs, ... }: 
+#let 
+#  cfg = config.host.containers.calibreweb;
+#in {
+#  options.host.containers.calibreweb.enable = 
+#    lib.mkEnableOption "Calibre-web container";
+#
+#    config = lib.mkIf cfg.enable {
+#      
+#      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+#
+#      containers.calibreweb = {
+#        autoStart = true;
+#        privateNetwork = false;
+#      #  hostAddress = "10.233.5.1";
+#      #  localAddress = "10.233.5.2";
+#
+#      forwardPorts = [
+#      { protocol = "tcp"; 
+#        hostPort = 8083; 
+#        containerPort = 8083; }
+#      ];
+#      
+#      bindMounts = { 
+#        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
+#        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
+#      };
+#
+#      config = { pkgs, ... }: {
+#        services.calibre-web.enable = true;
+#        system.stateVersion = "25.05";
+#      };
+#    };
+#  };
+#}
+
+===== ./hosts/nixos/services/containers/calibreweb/containers/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+
+      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+
+      containers.calibreweb = {
+        autoStart = true;
+        privateNetwork = false;
+      #  hostAddress = "10.233.5.1";
+      #  localAddress = "10.233.5.2";
+    };
+  };
+};
+
+===== ./hosts/nixos/services/containers/calibreweb/bindMounts/default.nix =====
+   { lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+     bindMounts = {
+        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
+        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
+    };
+  }
+}
+
+===== ./hosts/nixos/services/containers/calibreweb/forwardPorts/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      forwardPorts = [{
+        protocol = "tcp";
+        hostPort = 8083;
+        containerPort = 8083; }
+      ];
+    };
+  };
+}
+
+===== ./hosts/nixos/services/containers/calibreweb/networking/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+  options.host.containers.calibreweb.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
+  };
+}
+
+===== ./hosts/nixos/services/containers/jellyfin/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable { 
+
+===== ./hosts/nixos/services/containers/wireguard/default.nix =====
+
+===== ./hosts/nixos/services/containers/prometheus/default.nix =====
 
 ===== ./hosts/nixos/services/stateVersion/default.nix =====
 { config, pkgs, ... }:
@@ -510,12 +1170,22 @@ in {
 
 {
 networking.networkmanager.enable = true;
-networking.firewall.allowedTCPPorts = [ 80  22 ];
+networking.firewall.allowedTCPPorts = [ 80  22 8083 8080 2342 ];
 networking.firewall.allowedUDPPorts = [ 53 ];
 
 services.resolved.enable = false;
 }
 
+
+===== ./hosts/nixos/containers/default.nix =====
+{ config, pkgs, ... }:
+
+{
+host.containers.pihole.enable = true;
+host.containers.calibreweb.enable = true;
+host.containers.grafana.enable = true;
+host.containers.homer.enable = true;
+}
 
 ===== ./hosts/nixos/disko-config.nix =====
 {
@@ -865,6 +1535,16 @@ home.file.".config/nvim" = {
 }
 
 
+===== ./notes =====
+sudo mkdir -p /tank/media/ebook /srv/calibre/data
+# (optional for testing) make them writable by anyone, then tighten later
+sudo chmod 777 /tank/media/ebook /srv/calibre/data
+# restart the unit
+sudo systemctl restart container@calibreweb.service
+
+
+sudo mkdir -p /tank/media/ebook /srv/calibre/data
+
 ===== ./flake.nix =====
 {
   description = "Configuration for Nixos Server";
@@ -981,11 +1661,11 @@ echo "✅ All contents saved to $OUTPUT_FILE"
         ]
       },
       "locked": {
-        "lastModified": 1755810213,
-        "narHash": "sha256-QdenO8f0PTg+tC6HuSvngKcbRZA5oZKmjUT+MXKOLQg=",
+        "lastModified": 1755914636,
+        "narHash": "sha256-VJ+Gm6YsHlPfUCpmRQxvdiZW7H3YPSrdVOewQHAhZN8=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "6911d3e7f475f7b3558b4f5a6aba90fa86099baa",
+        "rev": "8b55a6ac58b678199e5bba701aaff69e2b3281c0",
         "type": "github"
       },
       "original": {

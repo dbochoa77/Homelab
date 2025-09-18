@@ -53,11 +53,10 @@
 │   │       └── default.nix
 │   └── nixos
 │       ├── configuration.nix
-│       ├── containers
-│       │   └── default.nix
 │       ├── default.nix
 │       ├── disko-config.nix
 │       ├── hardware-configuration.nix
+│       ├── nixContainers.nix
 │       └── services
 │           ├── autoUpgrade
 │           │   └── default.nix
@@ -68,20 +67,11 @@
 │           │   └── systemd
 │           │       └── default.nix
 │           ├── containers
-│           │   ├── allCode.txt
 │           │   ├── calibreweb
-│           │   │   ├── bindMounts
-│           │   │   │   └── default.nix
-│           │   │   ├── config
-│           │   │   ├── containers
-│           │   │   │   └── default.nix
-│           │   │   ├── default.nix
-│           │   │   ├── forwardPorts
-│           │   │   │   └── default.nix
-│           │   │   └── networking
-│           │   │       └── default.nix
+│           │   │   └── default.nix
 │           │   ├── default.nix
 │           │   ├── forgejo
+│           │   │   └── default.nix
 │           │   ├── grafana
 │           │   │   └── default.nix
 │           │   ├── homeAutomation
@@ -99,7 +89,6 @@
 │           │   ├── notes
 │           │   ├── pihole
 │           │   │   └── default.nix
-│           │   ├── printAll.sh
 │           │   ├── prometheus
 │           │   │   └── default.nix
 │           │   ├── retroArch
@@ -152,323 +141,9 @@
 │           └── default.nix
 └── printAll.sh
 
-73 directories, 79 files
+67 directories, 74 files
 
 ===== FILE CONTENTS =====
-
-===== ./hosts/admin/home-manager/default.nix =====
-{ config, pkgs, inputs, outputs, ... }: 
-
-{
-  home-manager = {
-    useUserPackages = true;
-    extraSpecialArgs = {inherit inputs outputs; };
-  };
-}
-
-===== ./hosts/admin/default.nix =====
-{ config, inputs, outputs, lib, pkgs, ... }:
-
-{
-  imports = [
-    ./home-manager/default.nix
-    ./nix/default.nix
-    ./overlays/default.nix
-  ];
-}
-
-===== ./hosts/admin/overlays/default.nix =====
-{ config, pkgs, outputs, ... }:
-
-{
-  nixpkgs = {
-    overlays = [
-      outputs.overlays.additions
-      outputs.overlays.modifications
-      outputs.overlays.stable-packages
-    ];
-  };
-}
-
-===== ./hosts/admin/nix/generalCleanup/default.nix =====
-{ config, pkgs, inputs, lib, ... }:
-
-{ 
-    nix = let
-        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-            in {
-                gc = {
-                automatic = true;
-                options = "--delete-older-than 30d";
-            };
-    };
-}
-
-===== ./hosts/admin/nix/default.nix =====
-{
-  imports = [
-    ./generalCleanup/default.nix
-    ./nixPath/default.nix
-    ./optimise/default.nix
-    ./registry/default.nix
-    ./settings/default.nix
-  ];
-}
-
-===== ./hosts/admin/nix/nixPath/default.nix =====
-{ config, pkgs, lib, inputs, ... }:
-
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        in {
-            nixPath =
-            ["/etc/nix/path"]
-            ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
-         };
-}
-
-===== ./hosts/admin/nix/settings/default.nix =====
-{ config, pkgs, lib, inputs, ... }: 
-
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        in {
-            settings = {
-                experimental-features = ["nix-command" "flakes"];
-                    trusted-users = [
-                        "root"
-                        "admin"
-                    ];
-                };
-            };
-}
-
-===== ./hosts/admin/nix/registry/default.nix =====
-{ config, pkgs, lib, inputs, ... }:
-
-{
-nix = let
-    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-        in {
-            registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
-    };
-}
-
-
-===== ./hosts/admin/nix/optimise/default.nix =====
-{ config, pkgs, lib, inputs, ... }:
-
-{
-    nix = let
-        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
-            in {
-                gc = {
-                automatic = true;
-                options = "--delete-older-than 30d";
-            };
-        };
-}
-
-===== ./hosts/nixos/default.nix =====
-{ config, inputs, outputs, lib, pkgs, ... }:
-
-{
- imports = [
-   ./hardware-configuration.nix
-   ./services
-   ../admin
-   ./configuration.nix 
-   ./containers/default.nix
-   inputs.home-manager.nixosModules.home-manager
-  ];
-
-  home-manager = {
-   useUserPackages = true;
-   extraSpecialArgs = { inherit inputs outputs; };
-   users.admin = 
-   import ../../home/nixos/default.nix;  
-   }; 
-}
-
-===== ./hosts/nixos/services/flakes/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
-    trusted-users = [ "root" "admin"];
-  };
-}
-
-
-===== ./hosts/nixos/services/default.nix =====
-{
-  imports = [
-    ./autoUpgrade/default.nix
-    ./boot/default.nix
-    ./containers/default.nix
-    ./flakes/default.nix
-    ./hostname/default.nix
-    ./internationisationProps/default.nix
-    ./keymaps/default.nix
-    ./networking/default.nix
-    ./ssh/default.nix
-    ./stateVersion/default.nix
-    ./timezone/default.nix
-    ./user/default.nix
-  ];
-}
-
-===== ./hosts/nixos/services/autoUpgrade/default.nix =====
- { config, pkgs, inputs, ... }:
-
- {
-   system.autoUpgrade = {
-    enable = true;
-    flake = inputs.self.outPath;
-    flags = [
-      "--update-input"
-      "nixpkgs"
-      "--no-write-lock-file"
-      "-L" # print build logs
-    ];
-    dates = "02:00";
-    randomizedDelaySec = "45min";
-  };
- }
-
-===== ./hosts/nixos/services/containers/allCode.txt =====
-===== DIRECTORY STRUCTURE =====
-.
-├── allCode.txt
-├── calibreweb
-│   ├── bindMounts
-│   │   └── default.nix
-│   ├── config
-│   ├── containers
-│   │   └── default.nix
-│   ├── default.nix
-│   ├── forwardPorts
-│   │   └── default.nix
-│   └── networking
-│       └── default.nix
-├── default.nix
-├── grafana
-│   └── default.nix
-├── homeAutomation
-│   └── default.nix
-├── homer
-│   └── default.nix
-├── jellyfin
-│   └── default.nix
-├── loki
-│   └── default.nix
-├── mosquitto
-│   └── default.nix
-├── node-RED
-│   └── default.nix
-├── notes
-├── pihole
-│   └── default.nix
-├── printAll.sh
-├── prometheus
-│   └── default.nix
-├── retroArch
-│   └── default.nix
-├── uptime
-│   └── default.nix
-└── wireguard
-    └── default.nix
-
-19 directories, 21 files
-
-===== FILE CONTENTS =====
-
-===== ./allCode.txt =====
-
-===== ./loki/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable {
-
-===== ./grafana/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.grafana;
-in {
-  options.host.containers.grafana = {
-    enable       = lib.mkEnableOption "Grafana container";
-    hostAddress  = lib.mkOption { type = lib.types.str; default = "10.233.7.1"; };
-    localAddress = lib.mkOption { type = lib.types.str; default = "10.233.7.2"; };
-    port         = lib.mkOption { type = lib.types.int; default = 2342; };
-    dataDir      = lib.mkOption { type = lib.types.path; default = "/srv/grafana"; };
-  };
-
-  config = lib.mkIf cfg.enable {
-    containers.grafana = {
-      autoStart = true;
-      privateNetwork = true;
-      hostAddress  = cfg.hostAddress;
-      localAddress = cfg.localAddress;
-
-      # forward host :port -> container :port (no nginx needed)
-      forwardPorts = [
-        { protocol = "tcp"; hostPort = cfg.port; containerPort = cfg.port; }
-      ];
-
-      # persist data on the host
-      bindMounts."/var/lib/grafana" = {
-        hostPath = cfg.dataDir;
-        isReadOnly = false;
-      };
-
-      config = { pkgs, ... }: {
-        networking.hostName = "grafana";
-        services.grafana.settings.server = {
-          enable = true;
-          domain = "grafana.pele";
-          port   = cfg.port;
-          addr   = "127.0.0.1"; # only loopback inside the container
-        };
-        system.stateVersion = "25.11";
-      };
-    };
-  };
-}
-
-
-
-===== ./default.nix =====
-{
-  imports = [
-    ./pihole/default.nix
-    ./calibreweb/default.nix
-    ./grafana/default.nix
-    ./homer/default.nix
-  ];
-}
-
-===== ./node-RED/default.nix =====
-
-===== ./notes =====
-FOR GRAFANA 
-sudo mkdir -p /srv/grafana
-
-# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
-sudo chown -R 472:472 /srv/grafana || true
-sudo chmod -R 0775 /srv/grafana
-
-FOR HOMER
-sudo mkdir -p /srv/homer/assets
-
-===== ./uptime/default.nix =====
 
 ===== ./printAll.sh =====
 #!/usr/bin/env bash
@@ -495,796 +170,178 @@ done
 echo "✅ All contents saved to $OUTPUT_FILE"
 
 
-===== ./mosquitto/default.nix =====
-
-===== ./retroArch/default.nix =====
-
-===== ./pihole/default.nix =====
-{ lib, config, pkgs, ... }:
-let 
-  cfg = config.host.containers.pihole;
-in { 
-  options.host.containers.pihole.enable = 
-    lib.mkEnableOption "Pi-hole container"; 
-
-    config = lib.mkIf cfg.enable {
-      services.resolved.enable = false;
-      networking.firewall.allowedTCPPorts = [ 53 80 ];
-      networking.firewall.allowedUDPPorts = [ 53 ];
-     
-    containers.pihole = {
-      autoStart = true;
-      privateNetwork = false; 
-      config = { pkgs, ... }: {
-        system.stateVersion = "25.05";
-        services.pihole-ftl.enable = true;
-        services.pihole-web.enable = true;
-        services.pihole-web.ports = [ "80"];
-      };
-    };
-  };
-}
-
-===== ./homer/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.homer;
-in {
-  options.host.containers.homer.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      containers.homer = {
-        autoStart = true;
-        privateNetwork = true;
-        hostAddress  = "10.233.8.1";
-        localAddress = "10.233.8.2";
-
-      forwardPorts = [ { protocol = "tcp"; hostPort = 8080; containerPort = 8080; }
-      ];
-
-      bindMounts."/srv/homer/assets" = {
-        hostPath = "/srv/homer/assets";
-        isReadOnly = false;
-      };
-
-      config = { pkgs, ... }: {
-        networking.hostName = "homer";
-        services.nginx = {
-          enable = true;
-          virtualHosts."_" = {
-            root = "/srv/homer/assets";
-          };
-        };
-
-        # Install Homer package into /srv/homer/assets
-        systemd.services.setup-homer = {
-          description = "Populate Homer dashboard";
-          serviceConfig.Type = "oneshot";
-          wantedBy = [ "multi-user.target" ];
-          script = ''
-            mkdir -p /srv/homer/assets
-            cp -r ${pkgs.homer}/share/homer/* /srv/homer/assets/
-          '';
-        };
-
-        system.stateVersion = "25.05";
-      };
-    };
-  };
-}
-
-
-===== ./homeAutomation/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable {
-
-===== ./calibreweb/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  name = builtins.baseNameOf (toString ./.);
-in {
-  # make `containerName` available to the submodules
-  _module.args = { containerName = calibreweb; };
-
-  imports = [
-    ./options.nix
-    ./ports.nix
-    ./mounts.nix
-    ./inner.nix
-  ];
-}
-
-
-
-
-
-
-#{ lib, config, pkgs, ... }: 
-#let 
-#  cfg = config.host.containers.calibreweb;
-#in {
-#  options.host.containers.calibreweb.enable = 
-#    lib.mkEnableOption "Calibre-web container";
-#
-#    config = lib.mkIf cfg.enable {
-#      
-#      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-#
-#      containers.calibreweb = {
-#        autoStart = true;
-#        privateNetwork = false;
-#      #  hostAddress = "10.233.5.1";
-#      #  localAddress = "10.233.5.2";
-#
-#      forwardPorts = [
-#      { protocol = "tcp"; 
-#        hostPort = 8083; 
-#        containerPort = 8083; }
-#      ];
-#      
-#      bindMounts = { 
-#        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
-#        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
-#      };
-#
-#      config = { pkgs, ... }: {
-#        services.calibre-web.enable = true;
-#        system.stateVersion = "25.05";
-#      };
-#    };
-#  };
-#}
-
-===== ./calibreweb/containers/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-
-      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-
-      containers.calibreweb = {
-        autoStart = true;
-        privateNetwork = false;
-      #  hostAddress = "10.233.5.1";
-      #  localAddress = "10.233.5.2";
-    };
-  };
-};
-
-===== ./calibreweb/bindMounts/default.nix =====
-   { lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-     bindMounts = {
-        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
-        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
-    };
-  }
-}
-
-===== ./calibreweb/forwardPorts/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      forwardPorts = [{
-        protocol = "tcp";
-        hostPort = 8083;
-        containerPort = 8083; }
-      ];
-    };
-  };
-}
-
-===== ./calibreweb/networking/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-  };
-}
-
-===== ./jellyfin/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable { 
-
-===== ./wireguard/default.nix =====
-
-===== ./prometheus/default.nix =====
-
-===== ./hosts/nixos/services/containers/loki/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable {
-
-===== ./hosts/nixos/services/containers/grafana/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.grafana;
-in {
-  options.host.containers.grafana = {
-    enable       = lib.mkEnableOption "Grafana container";
-    hostAddress  = lib.mkOption { type = lib.types.str; default = "10.233.7.1"; };
-    localAddress = lib.mkOption { type = lib.types.str; default = "10.233.7.2"; };
-    port         = lib.mkOption { type = lib.types.int; default = 2342; };
-    dataDir      = lib.mkOption { type = lib.types.path; default = "/srv/grafana"; };
-  };
-
-  config = lib.mkIf cfg.enable {
-    containers.grafana = {
-      autoStart = true;
-      privateNetwork = true;
-      hostAddress  = cfg.hostAddress;
-      localAddress = cfg.localAddress;
-
-      # forward host :port -> container :port (no nginx needed)
-      forwardPorts = [
-        { protocol = "tcp"; hostPort = cfg.port; containerPort = cfg.port; }
-      ];
-
-      # persist data on the host
-      bindMounts."/var/lib/grafana" = {
-        hostPath = cfg.dataDir;
-        isReadOnly = false;
-      };
-
-      config = { pkgs, ... }: {
-        networking.hostName = "grafana";
-        services.grafana.settings.server = {
-          enable = true;
-          domain = "grafana.pele";
-          port   = cfg.port;
-          addr   = "127.0.0.1"; # only loopback inside the container
-        };
-        system.stateVersion = "25.11";
-      };
-    };
-  };
-}
-
-
-
-===== ./hosts/nixos/services/containers/default.nix =====
+===== ./flake.lock =====
 {
-  imports = [
-    ./pihole/default.nix
-    ./calibreweb/default.nix
-    ./grafana/default.nix
-    ./homer/default.nix
-  ];
+  "nodes": {
+    "disko": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758160037,
+        "narHash": "sha256-fXelTdjdILspZ1IUU9aICB1+PXwSFiF8j+7ujwo1VpQ=",
+        "owner": "nix-community",
+        "repo": "disko",
+        "rev": "4f554162fff88e77655073d352eec0cea71103a2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "disko",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1758160734,
+        "narHash": "sha256-4YoMTUZRXb2XggJi11lSJnehrwM6u31Ylu2cOzb96JQ=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "a504aee7d452ecf8881b933b1eb573535a543a03",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1757745802,
+        "narHash": "sha256-hLEO2TPj55KcUFUU1vgtHE9UEIOjRcH/4QbmfHNF820=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "c23193b943c6c689d70ee98ce3128239ed9e32d1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-stable": {
+      "locked": {
+        "lastModified": 1735563628,
+        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-24.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nvimDotfiles": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1752018499,
+        "narHash": "sha256-UzDfqXYSskgF+YN+fN5x11PtKksBNtrSmgt6gKskDxE=",
+        "ref": "refs/heads/main",
+        "rev": "a7e4974e17d2633a3e788962f8ec385bd87c2d5f",
+        "revCount": 3,
+        "type": "git",
+        "url": "https://github.com/dbochoa77/nvim.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/dbochoa77/nvim.git"
+      }
+    },
+    "root": {
+      "inputs": {
+        "disko": "disko",
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-stable": "nixpkgs-stable",
+        "nvimDotfiles": "nvimDotfiles"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
 }
 
-===== ./hosts/nixos/services/containers/node-RED/default.nix =====
+===== ./home/admin/config/default.nix =====
+{ config, ... }:
 
-===== ./hosts/nixos/services/containers/notes =====
-FOR GRAFANA 
-sudo mkdir -p /srv/grafana
-
-# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
-sudo chown -R 472:472 /srv/grafana || true
-sudo chmod -R 0775 /srv/grafana
-
-FOR HOMER
-sudo mkdir -p /srv/homer/assets
-
-===== ./hosts/nixos/services/containers/uptime/default.nix =====
-
-===== ./hosts/nixos/services/containers/printAll.sh =====
-#!/usr/bin/env bash
-
-# Usage: ./printAll.sh /path/to/dir output.txt
-
-TARGET_DIR="${1:-.}"             # Default to current directory if not provided
-OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
-
-# Clear or create output file
-> "$OUTPUT_FILE"
-
-# Add directory tree structure (ignoring .git)
-echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
-tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
-echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
-
-# Loop through all files except inside .git and append content
-find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
-    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
-    cat "$file" >> "$OUTPUT_FILE"
-done
-
-echo "✅ All contents saved to $OUTPUT_FILE"
-
-
-===== ./hosts/nixos/services/containers/mosquitto/default.nix =====
-
-===== ./hosts/nixos/services/containers/retroArch/default.nix =====
-
-===== ./hosts/nixos/services/containers/pihole/default.nix =====
-{ lib, config, pkgs, ... }:
-let 
-  cfg = config.host.containers.pihole;
-in { 
-  options.host.containers.pihole.enable = 
-    lib.mkEnableOption "Pi-hole container"; 
-
-    config = lib.mkIf cfg.enable {
-      services.resolved.enable = false;
-      networking.firewall.allowedTCPPorts = [ 53 80 ];
-      networking.firewall.allowedUDPPorts = [ 53 ];
-     
-    containers.pihole = {
-      autoStart = true;
-      privateNetwork = false; 
-      config = { pkgs, ... }: {
-        system.stateVersion = "25.05";
-        services.pihole-ftl.enable = true;
-        services.pihole-web.enable = true;
-        services.pihole-web.ports = [ "80"];
-      };
+{
+  nixpkgs = {
+    config = {
+      allowUnfree = true;
+      allowUnfreePredicate = true;
     };
   };
 }
 
-===== ./hosts/nixos/services/containers/homer/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.homer;
-in {
-  options.host.containers.homer.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      containers.homer = {
-        autoStart = true;
-        privateNetwork = true;
-        hostAddress  = "10.233.8.1";
-        localAddress = "10.233.8.2";
-
-      forwardPorts = [ { protocol = "tcp"; hostPort = 8080; containerPort = 8080; }
-      ];
-
-      bindMounts."/srv/homer/assets" = {
-        hostPath = "/srv/homer/assets";
-        isReadOnly = false;
-      };
-
-      config = { pkgs, ... }: {
-        networking.hostName = "homer";
-        services.nginx = {
-          enable = true;
-          virtualHosts."_" = {
-            root = "/srv/homer/assets";
-          };
-        };
-
-        # Install Homer package into /srv/homer/assets
-        systemd.services.setup-homer = {
-          description = "Populate Homer dashboard";
-          serviceConfig.Type = "oneshot";
-          wantedBy = [ "multi-user.target" ];
-          script = ''
-            mkdir -p /srv/homer/assets
-            cp -r ${pkgs.homer}/share/homer/* /srv/homer/assets/
-          '';
-        };
-
-        system.stateVersion = "25.05";
-      };
-    };
-  };
-}
-
-
-===== ./hosts/nixos/services/containers/homeAutomation/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable {
-
-===== ./hosts/nixos/services/containers/calibreweb/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  name = builtins.baseNameOf (toString ./.);
-in {
-  # make `containerName` available to the submodules
-  _module.args = { containerName = calibreweb; };
-
-  imports = [
-    ./options.nix
-    ./ports.nix
-    ./mounts.nix
-    ./inner.nix
-  ];
-}
-
-
-
-
-
-
-#{ lib, config, pkgs, ... }: 
-#let 
-#  cfg = config.host.containers.calibreweb;
-#in {
-#  options.host.containers.calibreweb.enable = 
-#    lib.mkEnableOption "Calibre-web container";
-#
-#    config = lib.mkIf cfg.enable {
-#      
-#      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-#
-#      containers.calibreweb = {
-#        autoStart = true;
-#        privateNetwork = false;
-#      #  hostAddress = "10.233.5.1";
-#      #  localAddress = "10.233.5.2";
-#
-#      forwardPorts = [
-#      { protocol = "tcp"; 
-#        hostPort = 8083; 
-#        containerPort = 8083; }
-#      ];
-#      
-#      bindMounts = { 
-#        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
-#        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
-#      };
-#
-#      config = { pkgs, ... }: {
-#        services.calibre-web.enable = true;
-#        system.stateVersion = "25.05";
-#      };
-#    };
-#  };
-#}
-
-===== ./hosts/nixos/services/containers/calibreweb/containers/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-
-      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-
-      containers.calibreweb = {
-        autoStart = true;
-        privateNetwork = false;
-      #  hostAddress = "10.233.5.1";
-      #  localAddress = "10.233.5.2";
-    };
-  };
-};
-
-===== ./hosts/nixos/services/containers/calibreweb/bindMounts/default.nix =====
-   { lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-     bindMounts = {
-        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
-        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
-    };
-  }
-}
-
-===== ./hosts/nixos/services/containers/calibreweb/forwardPorts/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      forwardPorts = [{
-        protocol = "tcp";
-        hostPort = 8083;
-        containerPort = 8083; }
-      ];
-    };
-  };
-}
-
-===== ./hosts/nixos/services/containers/calibreweb/networking/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.calibreweb;
-in {
-  options.host.containers.calibreweb.enable =
-    lib.mkEnableOption "Calibre-web container";
-
-    config = lib.mkIf cfg.enable {
-      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-  };
-}
-
-===== ./hosts/nixos/services/containers/jellyfin/default.nix =====
-{ lib, config, pkgs, ... }:
-let
-  cfg = config.host.containers.pihole;
-in {
-  options.host.containers.pihole.enable =
-    lib.mkEnableOption Pi-hole container;
-
-    config = lib.mkIf cfg.enable { 
-
-===== ./hosts/nixos/services/containers/wireguard/default.nix =====
-
-===== ./hosts/nixos/services/containers/prometheus/default.nix =====
-
-===== ./hosts/nixos/services/stateVersion/default.nix =====
-{ config, pkgs, ... }:
-
-{ 
-  system.stateVersion = "25.05";
-}
-
-===== ./hosts/nixos/services/internationisationProps/default.nix =====
+===== ./home/admin/features/github/default.nix =====
 { config, pkgs, ... }:
 
 {
-  i18n.defaultLocale = "en_US.UTF-8";
+  programs.git = {
+    enable = true;
 
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "en_US.UTF-8";
-    LC_IDENTIFICATION = "en_US.UTF-8";
-    LC_MEASUREMENT = "en_US.UTF-8";
-    LC_MONETARY = "en_US.UTF-8";
-    LC_NAME = "en_US.UTF-8";
-    LC_NUMERIC = "en_US.UTF-8";
-    LC_PAPER = "en_US.UTF-8";
-    LC_TELEPHONE = "en_US.UTF-8";
-    LC_TIME = "en_US.UTF-8";
-  };
-}
+    userName  = "dbochoa77";
+    userEmail = "dbochoa77@proton.me";
 
-===== ./hosts/nixos/services/hostname/default.nix =====
-{ config, pkgs, hostname, ... }:
-
-{
-    networking.hostName = hostname;
-}
-
-===== ./hosts/nixos/services/boot/default.nix =====
-{
-  imports = [
-    ./systemd/default.nix
-    ./latestKernel/default.nix
-  ];
-}
-
-===== ./hosts/nixos/services/boot/systemd/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+    signing = {
+      key = "~/.ssh/id_ed25519";
+      signByDefault = true;
     };
-}
 
-===== ./hosts/nixos/services/boot/latestKernel/default.nix =====
-{ config, pkgs, ... }:
-
-{
-    boot.kernelPackages = pkgs.linuxPackages_latest;
-}
-
-===== ./hosts/nixos/services/keymaps/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-}
-
-===== ./hosts/nixos/services/ssh/default.nix =====
-{ config, pkgs, ... }:
-
-{  
-  services.openssh = {
-     enable = true;
-     settings.PermitRootLogin = "no";
-     allowSFTP = true;
-   };
-
-    services.openssh.extraConfig = ''
-    X11Forwarding yes
-    X11DisplayOffset 10
-    X11UseLocalhost yes
-  '';
-
-  services.openssh.settings.X11Forwarding = true;  
-}
-
-===== ./hosts/nixos/services/user/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  users.users.admin = {
-    isNormalUser = true;
-    description = "admin";
-    extraGroups = [ "media" "networkmanager" "wheel" "docker" ];
-  };
-}
-
-===== ./hosts/nixos/services/timezone/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  time.timeZone = "America/Los_Angeles";
-}
-
-===== ./hosts/nixos/services/networking/default.nix =====
-{ config, pkgs, ... }:
-
-{
-networking.networkmanager.enable = true;
-networking.firewall.allowedTCPPorts = [ 80  22 8083 8080 2342 ];
-networking.firewall.allowedUDPPorts = [ 53 ];
-
-services.resolved.enable = false;
-}
-
-
-===== ./hosts/nixos/containers/default.nix =====
-{ config, pkgs, ... }:
-
-{
-host.containers.pihole.enable = true;
-host.containers.calibreweb.enable = true;
-host.containers.grafana.enable = true;
-host.containers.homer.enable = true;
-}
-
-===== ./hosts/nixos/disko-config.nix =====
-{
-  disko.devices = {
-    disk = {
-      nixos = {
-        type = "disk";
-        device = "/dev/vda";
-        content = {
-          type = "gpt";
-          partitions = {
-            boot = {
-              size = "1M";
-              type = "EF02"; # for grub MBR
-            };
-            ESP = {
-              size = "512M";
-              type = "EF00";
-              content = {
-                type = "filesystem";
-                format = "vfat";
-                mountpoint = "/boot";
-              };
-            };
-            swap = { 
-              size = "8G";
-              content = {
-                type = "swap";
-              };
-            };
-            root = {
-              size = "100%";
-              content = {
-                type = "filesystem";
-                format = "ext4";
-                mountpoint = "/";
-              };
-            };
-          };
-        };
-      };
+    extraConfig = {
+      init.defaultBranch = "main";
+      pull.rebase = true;
+      gpg.format = "ssh";
     };
   };
 }
 
-
-===== ./hosts/nixos/hardware-configuration.nix =====
-# Do not modify this file!  It was generated by ‘nixos-generate-config’
-# and may be overwritten by future invocations.  Please make changes
-# to /etc/nixos/configuration.nix instead.
-{ config, lib, pkgs, modulesPath, ... }:
+===== ./home/admin/features/bat/default.nix =====
+{ config, lib, ... }:
 
 {
-  imports =
-    [ (modulesPath + "/profiles/qemu-guest.nix")
-    ];
-
-  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk" ];
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-intel" ];
-  boot.extraModulePackages = [ ];
-
-  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
-  # (the default) this is the recommended approach. When using systemd-networkd it's
-  # still possible to use this option, but it's recommended to use it in conjunction
-  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
-  networking.useDHCP = lib.mkDefault true;
-  # networking.interfaces.enp1s0.useDHCP = lib.mkDefault true;
-
-  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  programs.bat = {enable = true;};
 }
 
-===== ./hosts/nixos/configuration.nix =====
-{ config, pkgs, lib, ... }:
+===== ./home/admin/features/fastfetch/default.nix =====
+{ config, lib, pkgs, ... }:
 
-{
-  imports =
-    [
-      ./services/default.nix
-      ./disko-config.nix
-    ];
+with lib; let 
+  cfg = config.features.cli.fastfetch;
+in {
+    options.features.cli.fastfetch.enable = mkEnableOption "enable fastfetch";
 
-  environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
+    config = mkIf cfg.enable {
+        home.packages = with pkgs; [fastfetch];
+    };
 }
 
-===== ./allCode.txt =====
 
-===== ./home/admin/features/default.nix =====
-{ config, pkgs, ... }: 
+
+===== ./home/admin/features/eza/default.nix =====
+{ config, lib, ... }:
 
 {
-    imports = [
-    ./alias/default.nix
-    ./fastfetch/default.nix
-    ./bat/default.nix
-    ./eza/default.nix
-    ./github/default.nix
-    ];
-
+  programs.eza = {
+    enable = true;
+    enableFishIntegration = true;
+    enableBashIntegration = true;
+    extraOptions = ["-l" "--icons" "--git" "-a"];
+  };
 }
 
 ===== ./home/admin/features/alias/default.nix =====
@@ -1349,61 +406,18 @@ host.containers.homer.enable = true;
 }
 
 
-===== ./home/admin/features/fastfetch/default.nix =====
-{ config, lib, pkgs, ... }:
-
-with lib; let 
-  cfg = config.features.cli.fastfetch;
-in {
-    options.features.cli.fastfetch.enable = mkEnableOption "enable fastfetch";
-
-    config = mkIf cfg.enable {
-        home.packages = with pkgs; [fastfetch];
-    };
-}
-
-
-
-===== ./home/admin/features/eza/default.nix =====
-{ config, lib, ... }:
+===== ./home/admin/features/default.nix =====
+{ config, pkgs, ... }: 
 
 {
-  programs.eza = {
-    enable = true;
-    enableFishIntegration = true;
-    enableBashIntegration = true;
-    extraOptions = ["-l" "--icons" "--git" "-a"];
-  };
-}
+    imports = [
+    ./alias/default.nix
+    ./fastfetch/default.nix
+    ./bat/default.nix
+    ./eza/default.nix
+    ./github/default.nix
+    ];
 
-===== ./home/admin/features/bat/default.nix =====
-{ config, lib, ... }:
-
-{
-  programs.bat = {enable = true;};
-}
-
-===== ./home/admin/features/github/default.nix =====
-{ config, pkgs, ... }:
-
-{
-  programs.git = {
-    enable = true;
-
-    userName  = "dbochoa77";
-    userEmail = "dbochoa77@proton.me";
-
-    signing = {
-      key = "~/.ssh/id_ed25519";
-      signByDefault = true;
-    };
-
-    extraConfig = {
-      init.defaultBranch = "main";
-      pull.rebase = true;
-      gpg.format = "ssh";
-    };
-  };
 }
 
 ===== ./home/admin/default.nix =====
@@ -1418,14 +432,15 @@ in {
   ];
 }
 
-===== ./home/admin/config/default.nix =====
-{ config, ... }:
+===== ./home/admin/nix/default.nix =====
+{ config, lib, pkgs, ... }:
 
 {
-  nixpkgs = {
-    config = {
-      allowUnfree = true;
-      allowUnfreePredicate = true;
+  nix = {
+    package = lib.mkDefault pkgs.nix;
+    settings = {
+      experimental-features = ["nix-command" "flakes"];
+      warn-dirty = false;
     };
   };
 }
@@ -1442,43 +457,6 @@ in {
     ];
   };
 }
-
-===== ./home/admin/nix/default.nix =====
-{ config, lib, pkgs, ... }:
-
-{
-  nix = {
-    package = lib.mkDefault pkgs.nix;
-    settings = {
-      experimental-features = ["nix-command" "flakes"];
-      warn-dirty = false;
-    };
-  };
-}
-
-===== ./home/nixos/features/default.nix =====
-{ config, ... }:
-
-{
-  features = {
-    cli = {
-    fastfetch.enable = true;
-    };
-  };
-}
-
-===== ./home/nixos/default.nix =====
-{ config, ... }: 
-
-{ 
-  imports = [ 
-    ../admin
-    ./features/default.nix
-    ./home/default.nix
-    ./nvim/default.nix 
-  ]; 
-}
-
 
 ===== ./home/nixos/nvim/default.nix =====
 { inputs, ... }:
@@ -1508,42 +486,31 @@ home.file.".config/nvim" = {
   }; 
 }
 
-===== ./overlays/default.nix =====
-{ inputs, ... }: 
+===== ./home/nixos/features/default.nix =====
+{ config, ... }:
 
 {
-  # This one brings our custom packages from the 'pkgs' directory
-  additions = final: _prev: import ../pkgs { pkgs = final; };
-
-  # This one contains whatever you want to overlay
-  # You can change versions, add patches, set compilation flags, anything really.
-  # https://nixos.wiki/wiki/Overlays
-  modifications = final: prev:
-    {
-      # Patch vagrant to ignore broken symlink check
-      vagrant = prev.vagrant.overrideAttrs (old: {
-      dontFixup = true;
-      });
-    };
-
-  stable-packages = final: _prev: {
-    pkgsStable = import inputs.nixpkgs-stable {
-      system = final.system;
-      config.allowUnfree = true;
+  features = {
+    cli = {
+    fastfetch.enable = true;
     };
   };
 }
 
+===== ./home/nixos/default.nix =====
+{ config, ... }: 
 
-===== ./notes =====
-sudo mkdir -p /tank/media/ebook /srv/calibre/data
-# (optional for testing) make them writable by anyone, then tighten later
-sudo chmod 777 /tank/media/ebook /srv/calibre/data
-# restart the unit
-sudo systemctl restart container@calibreweb.service
+{ 
+  imports = [ 
+    ../admin
+    ./features/default.nix
+    ./home/default.nix
+    ./nvim/default.nix 
+  ]; 
+}
 
 
-sudo mkdir -p /tank/media/ebook /srv/calibre/data
+===== ./allCode.txt =====
 
 ===== ./flake.nix =====
 {
@@ -1606,147 +573,624 @@ sudo mkdir -p /tank/media/ebook /srv/calibre/data
   };
 }
 
-===== ./printAll.sh =====
-#!/usr/bin/env bash
-
-# Usage: ./printAll.sh /path/to/dir output.txt
-
-TARGET_DIR="${1:-.}"             # Default to current directory if not provided
-OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
-
-# Clear or create output file
-> "$OUTPUT_FILE"
-
-# Add directory tree structure (ignoring .git)
-echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
-tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
-echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
-
-# Loop through all files except inside .git and append content
-find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
-    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
-    cat "$file" >> "$OUTPUT_FILE"
-done
-
-echo "✅ All contents saved to $OUTPUT_FILE"
+===== ./notes =====
+sudo mkdir -p /tank/media/ebook /srv/calibre/data
+# (optional for testing) make them writable by anyone, then tighten later
+sudo chmod 777 /tank/media/ebook /srv/calibre/data
+# restart the unit
+sudo systemctl restart container@calibreweb.service
 
 
-===== ./flake.lock =====
+sudo mkdir -p /tank/media/ebook /srv/calibre/data
+
+===== ./hosts/admin/default.nix =====
+{ config, inputs, outputs, lib, pkgs, ... }:
+
 {
-  "nodes": {
-    "disko": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1755519972,
-        "narHash": "sha256-bU4nqi3IpsUZJeyS8Jk85ytlX61i4b0KCxXX9YcOgVc=",
-        "owner": "nix-community",
-        "repo": "disko",
-        "rev": "4073ff2f481f9ef3501678ff479ed81402caae6d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "disko",
-        "type": "github"
-      }
-    },
-    "home-manager": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1755914636,
-        "narHash": "sha256-VJ+Gm6YsHlPfUCpmRQxvdiZW7H3YPSrdVOewQHAhZN8=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "8b55a6ac58b678199e5bba701aaff69e2b3281c0",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "type": "github"
-      }
-    },
-    "nixpkgs": {
-      "locked": {
-        "lastModified": 1755615617,
-        "narHash": "sha256-HMwfAJBdrr8wXAkbGhtcby1zGFvs+StOp19xNsbqdOg=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "20075955deac2583bb12f07151c2df830ef346b4",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs-stable": {
-      "locked": {
-        "lastModified": 1735563628,
-        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-24.05",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nvimDotfiles": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1752018499,
-        "narHash": "sha256-UzDfqXYSskgF+YN+fN5x11PtKksBNtrSmgt6gKskDxE=",
-        "ref": "refs/heads/main",
-        "rev": "a7e4974e17d2633a3e788962f8ec385bd87c2d5f",
-        "revCount": 3,
-        "type": "git",
-        "url": "https://github.com/dbochoa77/nvim.git"
-      },
-      "original": {
-        "type": "git",
-        "url": "https://github.com/dbochoa77/nvim.git"
-      }
-    },
-    "root": {
-      "inputs": {
-        "disko": "disko",
-        "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs",
-        "nixpkgs-stable": "nixpkgs-stable",
-        "nvimDotfiles": "nvimDotfiles"
-      }
-    }
-  },
-  "root": "root",
-  "version": 7
+  imports = [
+    ./home-manager/default.nix
+    ./nix/default.nix
+    ./overlays/default.nix
+  ];
 }
 
-===== ./.nvimlog =====
-
-===== ./pkgs/default.nix =====
-{ pkgs }:
+===== ./hosts/admin/nix/settings/default.nix =====
+{ config, pkgs, lib, inputs, ... }: 
 
 {
-  systemPackages = import ./systemPackages { inherit pkgs; };
-  userPackages   = import ./userPackages { inherit pkgs; };
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            settings = {
+                experimental-features = ["nix-command" "flakes"];
+                    trusted-users = [
+                        "root"
+                        "admin"
+                    ];
+                };
+            };
+}
+
+===== ./hosts/admin/nix/nixPath/default.nix =====
+{ config, pkgs, lib, inputs, ... }:
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            nixPath =
+            ["/etc/nix/path"]
+            ++ lib.mapAttrsToList (flakeName: _: "${flakeName}=flake:${flakeName}") flakeInputs;
+         };
+}
+
+===== ./hosts/admin/nix/generalCleanup/default.nix =====
+{ config, pkgs, inputs, lib, ... }:
+
+{ 
+    nix = let
+        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+            in {
+                gc = {
+                automatic = true;
+                options = "--delete-older-than 30d";
+            };
+    };
+}
+
+===== ./hosts/admin/nix/default.nix =====
+{
+  imports = [
+    ./generalCleanup/default.nix
+    ./nixPath/default.nix
+    ./optimise/default.nix
+    ./registry/default.nix
+    ./settings/default.nix
+  ];
+}
+
+===== ./hosts/admin/nix/optimise/default.nix =====
+{ config, pkgs, lib, inputs, ... }:
+
+{
+    nix = let
+        flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+            in {
+                gc = {
+                automatic = true;
+                options = "--delete-older-than 30d";
+            };
+        };
+}
+
+===== ./hosts/admin/nix/registry/default.nix =====
+{ config, pkgs, lib, inputs, ... }:
+
+{
+nix = let
+    flakeInputs = lib.filterAttrs (_: lib.isType "flake") inputs;
+        in {
+            registry = lib.mapAttrs (_: flake: {inherit flake;}) flakeInputs;
+    };
 }
 
 
+===== ./hosts/admin/overlays/default.nix =====
+{ config, pkgs, outputs, ... }:
+
+{
+  nixpkgs = {
+    overlays = [
+      outputs.overlays.additions
+      outputs.overlays.modifications
+      outputs.overlays.stable-packages
+    ];
+  };
+}
+
+===== ./hosts/admin/home-manager/default.nix =====
+{ config, pkgs, inputs, outputs, ... }: 
+
+{
+  home-manager = {
+    useUserPackages = true;
+    extraSpecialArgs = {inherit inputs outputs; };
+  };
+}
+
+===== ./hosts/nixos/disko-config.nix =====
+{
+  disko.devices = {
+    disk = {
+      nixos = {
+        type = "disk";
+        device = "/dev/vda";
+        content = {
+          type = "gpt";
+          partitions = {
+            boot = {
+              size = "1M";
+              type = "EF02"; # for grub MBR
+            };
+            ESP = {
+              size = "512M";
+              type = "EF00";
+              content = {
+                type = "filesystem";
+                format = "vfat";
+                mountpoint = "/boot";
+              };
+            };
+            swap = { 
+              size = "8G";
+              content = {
+                type = "swap";
+              };
+            };
+            root = {
+              size = "100%";
+              content = {
+                type = "filesystem";
+                format = "ext4";
+                mountpoint = "/";
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}
+
+
+===== ./hosts/nixos/services/stateVersion/default.nix =====
+{ config, pkgs, ... }:
+
+{ 
+  system.stateVersion = "25.05";
+}
+
+===== ./hosts/nixos/services/flakes/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+    trusted-users = [ "root" "admin"];
+  };
+}
+
+
+===== ./hosts/nixos/services/ssh/default.nix =====
+{ config, pkgs, ... }:
+
+{  
+  services.openssh = {
+     enable = true;
+     settings.PermitRootLogin = "no";
+     allowSFTP = true;
+   };
+
+    services.openssh.extraConfig = ''
+    X11Forwarding yes
+    X11DisplayOffset 10
+    X11UseLocalhost yes
+  '';
+
+  services.openssh.settings.X11Forwarding = true;  
+}
+
+===== ./hosts/nixos/services/networking/default.nix =====
+{ config, pkgs, ... }:
+
+{
+networking.networkmanager.enable = true;
+  #networking.firewall.allowedTCPPorts = [ 80  22 8083 8080 2342 ];
+  #networking.firewall.allowedUDPPorts = [ 53 ];
+
+  #services.resolved.enable = false;
+}
+
+
+===== ./hosts/nixos/services/containers/forgejo/default.nix =====
+
+===== ./hosts/nixos/services/containers/uptime/default.nix =====
+
+===== ./hosts/nixos/services/containers/homeAutomation/default.nix =====
+
+
+===== ./hosts/nixos/services/containers/homer/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.homer;
+in {
+  options.host.containers.homer.enable =
+    lib.mkEnableOption "Calibre-web container";
+
+    config = lib.mkIf cfg.enable {
+      containers.homer = {
+        autoStart = true;
+        privateNetwork = true;
+        hostAddress  = "10.233.8.1";
+        localAddress = "10.233.8.2";
+
+      forwardPorts = [ { protocol = "tcp"; hostPort = 8080; containerPort = 8080; }
+      ];
+
+      bindMounts."/srv/homer/assets" = {
+        hostPath = "/srv/homer/assets";
+        isReadOnly = false;
+      };
+
+      config = { pkgs, ... }: {
+        networking.hostName = "homer";
+        services.nginx = {
+          enable = true;
+          virtualHosts."_" = {
+            root = "/srv/homer/assets";
+          };
+        };
+
+        # Install Homer package into /srv/homer/assets
+        systemd.services.setup-homer = {
+          description = "Populate Homer dashboard";
+          serviceConfig.Type = "oneshot";
+          wantedBy = [ "multi-user.target" ];
+          script = ''
+            mkdir -p /srv/homer/assets
+            cp -r ${pkgs.homer}/share/homer/* /srv/homer/assets/
+          '';
+        };
+
+        system.stateVersion = "25.05";
+      };
+    };
+  };
+}
+
+
+===== ./hosts/nixos/services/containers/grafana/default.nix =====
+
+===== ./hosts/nixos/services/containers/pihole/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption "Pi-hole container";
+
+  config = lib.mkIf cfg.enable {
+    services.resolved.enable = false;
+    networking.firewall.allowedTCPPorts = [ 53 8080 ];
+    networking.firewall.allowedUDPPorts = [ 53 ];
+
+    containers.pihole = {
+      autoStart = true;
+      privateNetwork = false;
+      config = { pkgs, ... }: {
+        system.stateVersion = "25.05";
+        services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "8080" ];
+      };
+    };
+  };
+}
+
+
+===== ./hosts/nixos/services/containers/jellyfin/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable { 
+
+===== ./hosts/nixos/services/containers/mosquitto/default.nix =====
+
+===== ./hosts/nixos/services/containers/prometheus/default.nix =====
+
+===== ./hosts/nixos/services/containers/retroArch/default.nix =====
+
+===== ./hosts/nixos/services/containers/default.nix =====
+{
+  imports = [
+    ./pihole/default.nix
+    ./calibreweb/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/containers/notes =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption "Pi-hole container";
+
+    config = lib.mkIf cfg.enable {
+      services.resolved.enable = false;
+      networking.firewall.allowedTCPPorts = [ 53 80 ];
+      networking.firewall.allowedUDPPorts = [ 53 ];
+
+    containers.pihole = {
+      autoStart = true;
+      privateNetwork = false;
+      config = { pkgs, ... }: {
+        system.stateVersion = "25.05";
+        services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "80"];
+      };
+    };
+  };
+}
+
+===== ./hosts/nixos/services/containers/wireguard/default.nix =====
+
+===== ./hosts/nixos/services/containers/loki/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption Pi-hole container;
+
+    config = lib.mkIf cfg.enable {
+
+===== ./hosts/nixos/services/containers/calibreweb/default.nix =====
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.calibreweb;
+in {
+    options.host.containers.calibreweb.enable =
+      lib.mkEnableOption "Calibreweb container";
+  
+    config = lib.mkIf cfg.enable {
+      services.resolved.enable = false;
+      networking.firewall.allowedTCPPorts = [ 8083 ];
+    #  networking.firewall.allowedUDPPorts = [53];
+  
+    containers.calibreweb = {
+      autoStart = true;
+      privateNetwork = false;
+      config = { pkgs, ... }: {
+        system.stateVersion = "25.05";
+        services.calibre-web = {
+          enable = true;
+          user = "admin";
+          group = "media";
+            listen = {
+              ip = "127.0.01";
+              port = 8083;
+            };
+          options = {
+            calibreLibrary = "/tank/media/ebook";
+            enableBookUploading = true;
+            enableBookConversion = true;
+          };
+        };
+      };
+    };
+  };
+}
+
+
+===== ./hosts/nixos/services/containers/node-RED/default.nix =====
+
+===== ./hosts/nixos/services/timezone/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  time.timeZone = "America/Los_Angeles";
+}
+
+===== ./hosts/nixos/services/autoUpgrade/default.nix =====
+ { config, pkgs, inputs, ... }:
+
+ {
+   system.autoUpgrade = {
+    enable = true;
+    flake = inputs.self.outPath;
+    flags = [
+      "--update-input"
+      "nixpkgs"
+      "--no-write-lock-file"
+      "-L" # print build logs
+    ];
+    dates = "02:00";
+    randomizedDelaySec = "45min";
+  };
+ }
+
+===== ./hosts/nixos/services/boot/systemd/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  boot.loader = {
+    systemd-boot.enable = true;
+    efi.canTouchEfiVariables = true;
+    };
+}
+
+===== ./hosts/nixos/services/boot/latestKernel/default.nix =====
+{ config, pkgs, ... }:
+
+{
+    boot.kernelPackages = pkgs.linuxPackages_latest;
+}
+
+===== ./hosts/nixos/services/boot/default.nix =====
+{
+  imports = [
+    ./systemd/default.nix
+    ./latestKernel/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/default.nix =====
+{
+  imports = [
+    ./autoUpgrade/default.nix
+    ./boot/default.nix
+    ./containers/default.nix
+    ./flakes/default.nix
+    ./hostname/default.nix
+    ./internationisationProps/default.nix
+    ./keymaps/default.nix
+    ./networking/default.nix
+    ./ssh/default.nix
+    ./stateVersion/default.nix
+    ./timezone/default.nix
+    ./user/default.nix
+  ];
+}
+
+===== ./hosts/nixos/services/internationisationProps/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  i18n.defaultLocale = "en_US.UTF-8";
+
+  i18n.extraLocaleSettings = {
+    LC_ADDRESS = "en_US.UTF-8";
+    LC_IDENTIFICATION = "en_US.UTF-8";
+    LC_MEASUREMENT = "en_US.UTF-8";
+    LC_MONETARY = "en_US.UTF-8";
+    LC_NAME = "en_US.UTF-8";
+    LC_NUMERIC = "en_US.UTF-8";
+    LC_PAPER = "en_US.UTF-8";
+    LC_TELEPHONE = "en_US.UTF-8";
+    LC_TIME = "en_US.UTF-8";
+  };
+}
+
+===== ./hosts/nixos/services/user/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  users.users.admin = {
+    isNormalUser = true;
+    description = "admin";
+    extraGroups = [ "media" "networkmanager" "wheel" "docker" ];
+  };
+}
+
+===== ./hosts/nixos/services/hostname/default.nix =====
+{ config, pkgs, hostname, ... }:
+
+{
+    networking.hostName = hostname;
+}
+
+===== ./hosts/nixos/services/keymaps/default.nix =====
+{ config, pkgs, ... }:
+
+{
+  services.xserver.xkb = {
+    layout = "us";
+    variant = "";
+  };
+}
+
+===== ./hosts/nixos/default.nix =====
+{ config, inputs, outputs, lib, pkgs, ... }:
+
+{
+ imports = [
+   ./hardware-configuration.nix
+   ./services
+   ../admin
+   ./configuration.nix 
+   ./nixContainers.nix
+   inputs.home-manager.nixosModules.home-manager
+  ];
+
+  home-manager = {
+   useUserPackages = true;
+   extraSpecialArgs = { inherit inputs outputs; };
+   users.admin = 
+   import ../../home/nixos/default.nix;  
+   }; 
+}
+
+===== ./hosts/nixos/configuration.nix =====
+{ config, pkgs, lib, ... }:
+
+{
+  imports =
+    [
+      ./services/default.nix
+      ./disko-config.nix
+    ];
+
+  environment.systemPackages = import ../../pkgs/systemPackages {inherit pkgs; };
+}
+
+===== ./hosts/nixos/hardware-configuration.nix =====
+# Do not modify this file!  It was generated by ‘nixos-generate-config’
+# and may be overwritten by future invocations.  Please make changes
+# to /etc/nixos/configuration.nix instead.
+{ config, lib, pkgs, modulesPath, ... }:
+
+{
+  imports =
+    [ (modulesPath + "/profiles/qemu-guest.nix")
+    ];
+
+  boot.initrd.availableKernelModules = [ "ahci" "xhci_pci" "virtio_pci" "sr_mod" "virtio_blk" ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ "kvm-intel" ];
+  boot.extraModulePackages = [ ];
+
+  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
+  # (the default) this is the recommended approach. When using systemd-networkd it's
+  # still possible to use this option, but it's recommended to use it in conjunction
+  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
+  networking.useDHCP = lib.mkDefault true;
+  # networking.interfaces.enp1s0.useDHCP = lib.mkDefault true;
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+}
+
+===== ./hosts/nixos/nixContainers.nix =====
+{ config, pkgs, ... }:
+
+{
+host.containers.pihole.enable = true;
+host.containers.calibreweb.enable = true;
+#host.containers.grafana.enable = true;
+#host.containers.homer.enable = true;
+#host.containers.forgejo.enable    = true;
+#host.containers.homeAutomation.enable = true;
+#host.containers.jellyfin.enable = true;
+#host.containers.loki.enable = true;
+#host.containers.mosquitto.enable = true;
+#host.containers.node-RED.enable = true;
+#host.containers.prometheus.enable = true;
+#host.containers.retroArch.enable = true;
+#host.containers.uptime.enable = true;
+#host.containers.wireguard.enable = true;
+#host.containers.tailscale.enable = true;
+}
+
+===== ./pkgs/userPackages/terminal/default.nix =====
+{ pkgs }: with pkgs; [
+    zsh
+    fastfetch
+]
+
+===== ./pkgs/userPackages/utilities/default.nix =====
+{ pkgs }: with pkgs; [
+    nano
+    neovim
+    vim
+    sutils
+    cowsay
+    tree
+]
 
 ===== ./pkgs/userPackages/default.nix =====
 { pkgs }:
@@ -1771,59 +1215,18 @@ echo "✅ All contents saved to $OUTPUT_FILE"
 ]
 
 
-===== ./pkgs/userPackages/terminal/default.nix =====
-{ pkgs }: with pkgs; [
-    zsh
-    fastfetch
-]
-
-===== ./pkgs/userPackages/utilities/default.nix =====
-{ pkgs }: with pkgs; [
-    nano
-    neovim
-    vim
-    sutils
-    cowsay
-    tree
-]
-
-===== ./pkgs/systemPackages/default.nix =====
-{ pkgs }: 
-( import ./developerTools { inherit pkgs; })
-++
-( import ./nixos-tools { inherit pkgs; })
-++
-( import ./security { inherit pkgs; })
-++
-( import ./utilities{ inherit pkgs; })
-
-===== ./pkgs/systemPackages/developerTools/default.nix =====
-{ pkgs }: with pkgs; [
-    gcc
-    nodejs
-    curl
-    wget
-    unzip
-    gnutar
-    gzip
-    cacert
-    gnumake
-    git 
-    python3
-    python3Packages.pip
-    xclip 
-    ninja
-    gdb
-    cmake
-    pkg-config
-]
-
-
-
 ===== ./pkgs/systemPackages/nixos-tools/default.nix =====
 { pkgs }: with pkgs; [
     home-manager
 ]
+
+===== ./pkgs/systemPackages/security/default.nix =====
+{ pkgs }: with pkgs; [
+    openssl
+    nftables
+    xorg.xauth 
+]
+
 
 ===== ./pkgs/systemPackages/utilities/default.nix =====
 { pkgs }: with pkgs; [
@@ -1848,10 +1251,72 @@ echo "✅ All contents saved to $OUTPUT_FILE"
   udisks
 ]
 
-===== ./pkgs/systemPackages/security/default.nix =====
+===== ./pkgs/systemPackages/developerTools/default.nix =====
 { pkgs }: with pkgs; [
-    openssl
-    nftables
-    xorg.xauth 
+    gcc
+    nodejs
+    curl
+    wget
+    unzip
+    gnutar
+    gzip
+    cacert
+    gnumake
+    git 
+    python3
+    python3Packages.pip
+    xclip 
+    ninja
+    gdb
+    cmake
+    pkg-config
 ]
+
+
+
+===== ./pkgs/systemPackages/default.nix =====
+{ pkgs }: 
+( import ./developerTools { inherit pkgs; })
+++
+( import ./nixos-tools { inherit pkgs; })
+++
+( import ./security { inherit pkgs; })
+++
+( import ./utilities{ inherit pkgs; })
+
+===== ./pkgs/default.nix =====
+{ pkgs }:
+
+{
+  systemPackages = import ./systemPackages { inherit pkgs; };
+  userPackages   = import ./userPackages { inherit pkgs; };
+}
+
+
+
+===== ./overlays/default.nix =====
+{ inputs, ... }: 
+
+{
+  # This one brings our custom packages from the 'pkgs' directory
+  additions = final: _prev: import ../pkgs { pkgs = final; };
+
+  # This one contains whatever you want to overlay
+  # You can change versions, add patches, set compilation flags, anything really.
+  # https://nixos.wiki/wiki/Overlays
+  modifications = final: prev:
+    {
+      # Patch vagrant to ignore broken symlink check
+      vagrant = prev.vagrant.overrideAttrs (old: {
+      dontFixup = true;
+      });
+    };
+
+  stable-packages = final: _prev: {
+    pkgsStable = import inputs.nixpkgs-stable {
+      system = final.system;
+      config.allowUnfree = true;
+    };
+  };
+}
 

@@ -12,5 +12,6 @@
     ./stateVersion/default.nix
     ./timezone/default.nix
     ./user/default.nix
+    ./calibreweb/default.nix
   ];
 }

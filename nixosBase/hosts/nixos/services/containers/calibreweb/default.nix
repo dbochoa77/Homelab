@@ -13,17 +13,18 @@ in {
     containers.calibreweb = {
       autoStart = true;
       privateNetwork = false;
-      confoig = { pkgs, ... }: {
+      config = { pkgs, ... }: {
         system.stateVersion = "25.05";
         services.calibre-web = {
           enable = true;
-          group = "media";
+          user = "admin";
+          #group = "media";
             listen = {
               ip = "127.0.01";
               port = 8083;
             };
           options = {
-            calibrewebLibrary = "/tank/media/ebook";
+            calibreLibrary = "/tank/media/ebook";
             enableBookUploading = true;
             enableBookConversion = true;
           };
@@ -32,3 +33,4 @@ in {
     };
   };
 }
+

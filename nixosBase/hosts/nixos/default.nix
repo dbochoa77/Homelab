@@ -6,7 +6,7 @@
    ./services
    ../admin
    ./configuration.nix 
-   ./containers/default.nix
+   ./nixContainers.nix
    inputs.home-manager.nixosModules.home-manager
   ];
 

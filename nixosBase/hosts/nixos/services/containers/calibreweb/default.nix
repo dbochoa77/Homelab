@@ -1,34 +1,33 @@
-{ lib, config, pkgs, ... }: 
-let 
+{ lib, config, pkgs, ... }:
+let
   cfg = config.host.containers.calibreweb;
 in {
-  options.host.containers.calibreweb.enable = 
-    lib.mkEnableOption "Calibre-web container";
-
+    options.host.containers.calibreweb.enable =
+      lib.mkEnableOption "Calibreweb container";
+  
     config = lib.mkIf cfg.enable {
-      
-      networking.firewall.allowedTCPPorts = lib.mkAfter [ 8083 ];
-
-      containers.calibreweb = {
-        autoStart = true;
-        privateNetwork = false;
-      #  hostAddress = "10.233.5.1";
-      #  localAddress = "10.233.5.2";
-
-      forwardPorts = [
-      { protocol = "tcp"; 
-        hostPort = 8083; 
-        containerPort = 8083; }
-      ];
-      
-      bindMounts = { 
-        "/var/lib/calibre-web/library" = { hostPath = "/tank/media/ebook"; isReadOnly = false; };
-        "/var/lib/calibre-web/data"    = { hostPath = "/srv/calibre/data"; isReadOnly = false; };
-      };
-
-      config = { pkgs, ... }: {
-        services.calibre-web.enable = true;
+      services.resolved.enable = false;
+      networking.firewall.allowedTCPPorts = [ 53 8083 ];
+      networking.firewall.allowedUDPPorts = [53];
+  
+    containers.calibreweb = {
+      autoStart = true;
+      privateNetwork = false;
+      confoig = { pkgs, ... }: {
         system.stateVersion = "25.05";
+        services.calibre-web = {
+          enable = true;
+          group = "media";
+            listen = {
+              ip = "127.0.01";
+              port = 8083;
+            };
+          options = {
+            calibrewebLibrary = "/tank/media/ebook";
+            enableBookUploading = true;
+            enableBookConversion = true;
+          };
+        };
       };
     };
   };

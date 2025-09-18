@@ -1,9 +1,24 @@
-FOR GRAFANA 
-sudo mkdir -p /srv/grafana
+{ lib, config, pkgs, ... }:
+let
+  cfg = config.host.containers.pihole;
+in {
+  options.host.containers.pihole.enable =
+    lib.mkEnableOption "Pi-hole container";
 
-# 2) give Grafana write access (uid 472 is common; if unsure, just relax perms)
-sudo chown -R 472:472 /srv/grafana || true
-sudo chmod -R 0775 /srv/grafana
+    config = lib.mkIf cfg.enable {
+      services.resolved.enable = false;
+      networking.firewall.allowedTCPPorts = [ 53 80 ];
+      networking.firewall.allowedUDPPorts = [ 53 ];
 
-FOR HOMER
-sudo mkdir -p /srv/homer/assets
+    containers.pihole = {
+      autoStart = true;
+      privateNetwork = false;
+      config = { pkgs, ... }: {
+        system.stateVersion = "25.05";
+        services.pihole-ftl.enable = true;
+        services.pihole-web.enable = true;
+        services.pihole-web.ports = [ "80"];
+      };
+    };
+  };
+}

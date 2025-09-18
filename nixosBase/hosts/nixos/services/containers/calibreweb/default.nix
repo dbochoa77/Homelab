@@ -7,8 +7,8 @@ in {
   
     config = lib.mkIf cfg.enable {
       services.resolved.enable = false;
-      networking.firewall.allowedTCPPorts = [ 53 8083 ];
-      networking.firewall.allowedUDPPorts = [53];
+      networking.firewall.allowedTCPPorts = [ 8083 ];
+    #  networking.firewall.allowedUDPPorts = [53];
   
     containers.calibreweb = {
       autoStart = true;
@@ -18,7 +18,7 @@ in {
         services.calibre-web = {
           enable = true;
           user = "admin";
-          #group = "media";
+          group = "media";
             listen = {
               ip = "127.0.01";
               port = 8083;

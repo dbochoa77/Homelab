@@ -1,8 +1,9 @@
 { config, pkgs, ... }:
 
 {
+  environment.systemPackages = [ pkgs.forgejo ];
+
   services.forgejo = {
-    openFirewall = true;
     enable  = true;
     package = pkgs.forgejo;
     settings = {
@@ -16,4 +17,5 @@
       service.DISABLE_REGISTRATION = true; 
     };
   };
+  networking.firewall.allowedTCPPorts = [ 3000 ];
 }

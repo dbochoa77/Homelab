@@ -1,0 +1,19 @@
+{ config, pkgs, ... }:
+
+{
+  services.forgejo = {
+    openFirewall = true;
+    enable  = true;
+    package = pkgs.forgejo;
+    settings = {
+      server = {
+        DOMAIN    = "192.168.122.65";       
+        ROOT_URL  = "http://192.168.122.65:3000/";
+        HTTP_ADDR = "0.0.0.0";
+        HTTP_PORT = 3000;
+      };
+      database.DB_TYPE = "sqlite3";       
+      service.DISABLE_REGISTRATION = true; 
+    };
+  };
+}

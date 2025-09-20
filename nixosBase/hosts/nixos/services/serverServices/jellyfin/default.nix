@@ -14,16 +14,8 @@ in {
         dataDir = "/var/lib/jellyfin";
         user="admin";
       };
-    
-    systemd.tmpfiles.rules = [
-      #         PATH              MODE  USER  GROUP  AGE ARG
-      "d /srv/media              2775  root  media  -   -"
-      "d /srv/media/music        2775  root  media  -   -"
-      "d /srv/media/movies       2775  root  media  -   -"
-      "d /srv/media/shows        2775  root  media  -   -"
-    ];
-
-      environment.systemPackages = [
+         
+    environment.systemPackages = [
         pkgs.jellyfin
         pkgs.jellyfin-web
         pkgs.jellyfin-ffmpeg

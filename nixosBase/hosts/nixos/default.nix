@@ -7,7 +7,9 @@
    ../admin
    ./configuration.nix 
    ./serverServices.nix
+   ./nodes/default.nix
    inputs.home-manager.nixosModules.home-manager
+   ./modes/pieAlpha
   ];
 
   home-manager = {

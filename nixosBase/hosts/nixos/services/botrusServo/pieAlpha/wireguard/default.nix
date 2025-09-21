@@ -7,6 +7,8 @@ in {
     lib.mkEnableOption "Wireguard VPN";
 
   config = lib.mkIf cfg.enable {
-   
+
+  environment.systemPackages = [ pkgs.wireguard-tools ];
+
   };
 }

@@ -1,11 +1,10 @@
 { lib, config, pkgs, ... }:
 
 let
-  cfg = config.host.jellyfin;
+  cfg = config.pieEcho;
 in {
-  options.host.jellyfin = {
-      enable = lib.mkEnableOption "Jellyfin Service";
-    };
+  options.pieEcho.jellyfin.enable = 
+    lib.mkEnableOption "Jellyfin Service";
 
     config = lib.mkIf cfg.enable {
       services.jellyfin = {

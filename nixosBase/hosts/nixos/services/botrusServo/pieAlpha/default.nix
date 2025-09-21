@@ -5,13 +5,13 @@ let
 in {
   imports = [
     ./pihole
-    #./wireguard
+    ./wireguard
   ];
 
   options.pieAlpha.enable = lib.mkEnableOption "PieAlpha Node";
     
   config = lib.mkIf cfg.enable {
     pieAlpha.pihole.enable = true;
-    #pieAlpha.wireguard.enable = true;
+    pieAlpha.wireguard.enable = true;
   };
 }

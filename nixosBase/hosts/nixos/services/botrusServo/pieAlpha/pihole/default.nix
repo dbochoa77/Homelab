@@ -1,14 +1,15 @@
 { lib, config, pkgs, ... }:
+
 let
-  cfg = config.host.containers.pihole;
+  cfg = config.pieAlpha;
 in {
-  options.host.containers.pihole.enable =
+  options.pieAlpha.pihole.enable =
     lib.mkEnableOption "Pi-hole container";
 
-    config = lib.mkIf cfg.enable {
-      services.resolved.enable = false;
-      networking.firewall.allowedTCPPorts = [ 53 80 ];
-      networking.firewall.allowedUDPPorts = [ 53 ];
+  config = lib.mkIf cfg.enable {
+    services.resolved.enable = false;
+    networking.firewall.allowedTCPPorts = [ 53 8080 ];
+    networking.firewall.allowedUDPPorts = [ 53 ];
 
     containers.pihole = {
       autoStart = true;
@@ -17,7 +18,7 @@ in {
         system.stateVersion = "25.05";
         services.pihole-ftl.enable = true;
         services.pihole-web.enable = true;
-        services.pihole-web.ports = [ "80"];
+        services.pihole-web.ports = [ "8080" ];
       };
     };
   };

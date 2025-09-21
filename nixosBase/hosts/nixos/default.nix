@@ -6,10 +6,8 @@
    ./services
    ../admin
    ./configuration.nix 
-   ./serverServices.nix
-   ./nodes/default.nix
+   ./services/botrusServo/pieAlpha/default.nix
    inputs.home-manager.nixosModules.home-manager
-   ./modes/pieAlpha
   ];
 
   home-manager = {

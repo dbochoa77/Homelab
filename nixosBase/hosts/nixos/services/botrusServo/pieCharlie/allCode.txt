@@ -1,0 +1,160 @@
+===== DIRECTORY STRUCTURE =====
+.
+├── allCode.txt
+├── default.nix
+├── grafana
+│   └── default.nix
+├── loki
+│   └── default.nix
+├── printAll.sh
+├── prometheus
+│   └── default.nix
+└── uptime
+    └── default.nix
+
+5 directories, 7 files
+
+===== FILE CONTENTS =====
+
+===== ./printAll.sh =====
+#!/usr/bin/env bash
+
+# Usage: ./printAll.sh /path/to/dir output.txt
+
+TARGET_DIR="${1:-.}"             # Default to current directory if not provided
+OUTPUT_FILE="${2:-allCode.txt}"     # Default output file name
+
+# Clear or create output file
+> "$OUTPUT_FILE"
+
+# Add directory tree structure (ignoring .git)
+echo "===== DIRECTORY STRUCTURE =====" >> "$OUTPUT_FILE"
+tree -I ".git" "$TARGET_DIR" >> "$OUTPUT_FILE"
+echo -e "\n===== FILE CONTENTS =====" >> "$OUTPUT_FILE"
+
+# Loop through all files except inside .git and append content
+find "$TARGET_DIR" -type f ! -path "*/.git/*" | while read -r file; do
+    echo -e "\n===== $file =====" >> "$OUTPUT_FILE"
+    cat "$file" >> "$OUTPUT_FILE"
+done
+
+echo "✅ All contents saved to $OUTPUT_FILE"
+
+
+===== ./uptime/default.nix =====
+{ lib, config, pkgs, ... }:
+
+let
+  cfg = config.pieCharle;
+in {
+  options.pieCharle.uptime.enable =
+    lib.mkEnableOption "uptime";
+
+  config = lib.mkIf cfg.enable {
+
+
+
+
+
+
+}
+
+===== ./allCode.txt =====
+
+===== ./grafana/default.nix =====
+{ lib, config, pkgs, ... }:
+
+let
+  cfg = config.pieCharle;
+in {
+  options.pieCharle.grafana.enable =
+    lib.mkEnableOption "Grafana";
+
+  config = lib.mkIf cfg.enable {
+    services.grafana = {
+      enable = true;
+      settings = {
+        server = {
+          http_addr = "127.0.0.1";
+          http_port = 3000;
+          enforce_domain = true;
+          enable_gzip = true;
+          #domain = "grafana.your.domain";
+
+          # Alternatively, if you want to serve Grafana from a subpath:
+          # domain = "your.domain";
+          # root_url = "https://your.domain/grafana/";
+          # serve_from_sub_path = true;
+        };
+
+        # Prevents Grafana from phoning home
+        #analytics.reporting_enabled = false;
+      };
+    };
+  };
+
+
+
+
+
+}
+
+===== ./prometheus/default.nix =====
+{ lib, config, pkgs, ... }:
+
+let
+  cfg = config.pieCharle;
+in {
+  options.pieCharle.prometheus.enable =
+    lib.mkEnableOption "Prometheus";
+
+  config = lib.mkIf cfg.enable {
+
+
+
+
+
+
+}
+
+===== ./default.nix =====
+{ lib, config, pkgs, ... }:
+
+let
+  cfg = config.pieCharlie;
+in {
+  imports = [
+    #  ./loki
+    #  ./prometheus
+    #  ./uptime
+    ./grafana
+  ];
+
+  options.pieCharlie.enable = lib.mkEnableOption "pieCharlie Node";
+    config = lib.mkIf cfg.enable {
+      # pieCharlie.loki.enable = true;
+      # pieCharlie.prometheus.enable = true;
+      # pieCharlie.uptime.enable = true;
+      pieCharlie.grafana.enable = true;
+    };
+}
+
+
+
+===== ./loki/default.nix =====
+{ lib, config, pkgs, ... }:
+
+let
+  cfg = config.pieCharle;
+in {
+  options.pieCharle.loki.enable =
+    lib.mkEnableOption "Loki";
+
+  config = lib.mkIf cfg.enable {
+   
+
+
+
+
+
+}

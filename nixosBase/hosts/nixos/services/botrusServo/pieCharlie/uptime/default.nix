@@ -1,9 +1,9 @@
 { lib, config, pkgs, ... }:
 
 let
-  cfg = config.pieCharle;
+  cfg = config.pieCharlie;
 in {
-  options.pieCharle.uptime.enable =
+  options.pieCharlie.uptime.enable =
     lib.mkEnableOption "uptime";
 
   config = lib.mkIf cfg.enable {

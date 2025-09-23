@@ -1,9 +1,9 @@
 { lib, config, pkgs, ... }:
 
 let
-  cfg = config.pieCharle;
+  cfg = config.pieCharlie;
 in {
-  options.pieCharle.prometheus.enable =
+  options.pieCharlie.prometheus.enable =
     lib.mkEnableOption "Prometheus";
 
   config = lib.mkIf cfg.enable {

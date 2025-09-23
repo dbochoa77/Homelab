@@ -7,17 +7,16 @@ in {
     #  ./loki
     #  ./prometheus
     #  ./uptime
-    #  ./grafana
+    ./grafana
   ];
 
   options.pieCharlie.enable = lib.mkEnableOption "pieCharlie Node";
-
-  config = lib.mkIf cfg.enable {
-    # pieCharlie.loki.enable = true;
-    # pieCharlie.prometheus.enable = true;
-    # pieCharlie.uptime.enable = true;
-    # pieCharlie.grafana.enable = true;
-  };
+    config = lib.mkIf cfg.enable {
+      # pieCharlie.loki.enable = true;
+      # pieCharlie.prometheus.enable = true;
+      # pieCharlie.uptime.enable = true;
+      pieCharlie.grafana.enable = true;
+    };
 }
 
 

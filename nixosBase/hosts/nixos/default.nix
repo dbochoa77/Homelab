@@ -7,9 +7,9 @@
    ../admin
    ./configuration.nix 
    ./services/botrusServo/pieAlpha/default.nix
-    #./services/botrusServo/pieAlpha/default.nix
-    #./services/botrusServo/pieAlpha/default.nix
-    #./services/botrusServo/pieAlpha/default.nix
+   ./services/botrusServo/pieBravo/default.nix
+   ./services/botrusServo/pieCharlie/default.nix
+   ./services/botrusServo/pieDelta/default.nix
    ./services/botrusServo/pieEcho/default.nix
 
    inputs.home-manager.nixosModules.home-manager

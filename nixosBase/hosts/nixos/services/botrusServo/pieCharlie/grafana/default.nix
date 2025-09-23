@@ -4,10 +4,10 @@ let
   cfg = config.pieCharle;
 in {
   options.pieCharle.loki.enable =
-    lib.mkEnableOption "Loki";
+    lib.mkEnableOption "Grafana";
 
   config = lib.mkIf cfg.enable {
-   
+
 
 
 

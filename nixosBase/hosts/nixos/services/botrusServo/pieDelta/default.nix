@@ -12,5 +12,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     pieDelta.forgejo.enable = true;
+  # pieDelta.nextcloud.enable = true;
+  # pieDelta.calibreweb.enable = true;
   };
 }

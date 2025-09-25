@@ -8,6 +8,7 @@ in {
     #  ./prometheus
     #  ./uptime
     ./grafana
+    ./homer
   ];
 
   options.pieCharlie.enable = lib.mkEnableOption "pieCharlie Node";
@@ -16,6 +17,7 @@ in {
       # pieCharlie.prometheus.enable = true;
       # pieCharlie.uptime.enable = true;
       pieCharlie.grafana.enable = true;
+      pieCharlie.homer.enable = true;
     };
 }
 

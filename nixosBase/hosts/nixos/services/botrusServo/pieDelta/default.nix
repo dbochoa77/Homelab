@@ -5,7 +5,9 @@ let
 in {
   imports = [
     ./forgejo
-    #./retroArch
+    ./calibreweb
+    ./nextcloud
+
   ];
 
   options.pieDelta.enable = lib.mkEnableOption "PieDelta Node";

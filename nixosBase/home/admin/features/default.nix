@@ -7,6 +7,7 @@
     ./bat/default.nix
     ./eza/default.nix
     ./github/default.nix
+    ./bash_profile/default.nix
     ];
 
 }

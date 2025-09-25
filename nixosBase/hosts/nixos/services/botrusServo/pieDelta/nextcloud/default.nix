@@ -13,4 +13,5 @@ in {
         config.adminpassFile = "/etc/nextcloud-admin-pass";
         config.dbtype = "sqlite";
       };
+  };
 }

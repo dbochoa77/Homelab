@@ -2,8 +2,11 @@
 
 set -e
 
-echo "[*] Temperoy intstalling git"
-nix-shell -p git
+echo "[*] Moving hardwareConfiguration.nix"
+sudo mv /etc/nixos/hardware-configuration.nix /etc/nixos/default.nix
+
+echo "[*] default.nix"
+sudo mv /etc/nixos/default.nix /
 
 echo "[*] Partioning with Disko" 
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode destroy,format,mount /home/nixos/Homelab/nixosBase/hosts/nixos/disko-config.nix

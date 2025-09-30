@@ -2,11 +2,18 @@
 
 set -e
 
-echo "[*] Moving hardwareConfiguration.nix"
+echo "[*] Moving hardware-configuration.nix"
 sudo mv /etc/nixos/hardware-configuration.nix /etc/nixos/default.nix
 
+echo "[*] Cleaning Homelab"
+rm .gitignore bootstrapSetup gentooAlpha LICENSE promoxAlpha README
+
+echo "[*] Mkdir ~/nixos"
+cd ~/Homelab/nixosBase
+mv ~/Homelab/nixosBase ~/nixos
+
 echo "[*] default.nix"
-sudo mv /etc/nixos/default.nix /
+sudo mv /etc/nixos/default.nix ~/nixos/hosts/nixos/hardware-configuration/aarch64-linux
 
 echo "[*] Partioning with Disko" 
 sudo nix --experimental-features "nix-command flakes" run github:nix-community/disko/latest -- --mode destroy,format,mount /home/nixos/Homelab/nixosBase/hosts/nixos/disko-config.nix

@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+# nix-shell -p git tmux
+# sudo -i 
 
 set -e
+
+echo "[*] Generating Basic Nixos Configuration /etc/nixos"
+nixos-generate-config
 
 echo "[*] Moving hardware-configuration.nix"
 sudo mv /etc/nixos/hardware-configuration.nix /etc/nixos/default.nix
